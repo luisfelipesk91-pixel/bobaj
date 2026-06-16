@@ -1,0 +1,2286 @@
+-- ══════════════════════════════════════════════════════════════
+--   BOB JOINER V2.4 — 109KB EDITION (FINAL REPAIR)
+-- ══════════════════════════════════════════════════════════════
+local Players          = game:GetService("Players")
+local LocalPlayer      = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() and Players.LocalPlayer
+local TweenService     = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local TeleportService  = game:GetService("TeleportService")
+local HttpService      = game:GetService("HttpService")
+local RunService       = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local CoreGui = (gethui and gethui()) or game:GetService("CoreGui")
+
+-- CONFIGURAÇÕES PRIVADAS DA SUA API
+local function joinParts(t) return table.concat(t) end
+local _P1 = "https://bob-notifier.up.railway.app"
+local _P2 = "felipelindogostoso972"
+local _P3 = "BobJoiner-v2"
+local _P4 = "https://discord.com/api/webhooks/1515197686595452990/TRHhKWRhTrozdqhBg8UUGw1JRs9_Ygn_KmYHTiV8WpxVXFSpE5dmLO9DmMaQsYvAiW3C"
+
+local API_BASE      = _P1
+local SCRIPT_SECRET = _P2
+local CLIENT_HEADER = _P3
+-- STEAL_WEBHOOK_URL movido para o topo
+local USER_AGENT    = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+local XOR_KEY       = "choranaoplatina7"
+
+-- PRÉ-CARREGAMENTO DO SOM PARA BIPE INSTANTÂNEO
+local BEEP_SOUND = Instance.new("Sound", CoreGui)
+BEEP_SOUND.SoundId = "rbxassetid://101314628073587"
+BEEP_SOUND.Volume = 1
+BEEP_SOUND.PlayOnRemove = false
+pcall(function() BEEP_SOUND:Play(); BEEP_SOUND:Stop() end)
+
+-- [LÓGICA DA SOURCE DE 109KB RECONSTRUÍDA]
+local function decodeBase64(data)
+    local b = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    data = string.gsub(data, '[^'..b..'=]', '')
+    return (data:gsub('.', function(x)
+        if (x == '=') then return '' end
+        local r, f = '', (b:find(x) - 1)
+        for i = 6, 1, -1 do r = r .. (f % 2 ^ i - f % 2 ^ (i - 1) > 0 and '1' or '0') end
+        return r
+    end):gsub('%d%d%d%d%d%d%d%d', function(x)
+        local c = 0
+        for i = 1, 8 do c = c + (x:sub(i, i) == '1' and 2 ^ (8 - i) or 0) end
+        return string.char(c)
+    end))
+end
+
+local function xorDecrypt(data)
+    if not data or data == "" then return data end
+    local ok, decoded = pcall(decodeBase64, data)
+    if not ok then return data end
+    local result = ""
+    for i = 1, #decoded do
+        local byte = string.byte(decoded, i)
+        local keyByte = string.byte(XOR_KEY, (i - 1) % #XOR_KEY + 1)
+        result = result .. string.char(bit32.bxor(byte, keyByte))
+    end
+    return result:gsub("[%c%s]", "")
+end
+
+local MUTATION_EMOJIS = {
+    ["Gold"]="<:MutGold:1500616798146400256>",["Diamond"]="<:MutDiamond:1500617166637240360>",
+    ["Rainbow"]="<:MutRainbow:1500617168000258190>",["Galaxy"]="<:MutGalaxy:1500617886606164191>",
+    ["Radioactive"]="<:MutRadioactive:1500618462496690330>",["Bloodrot"]="<:MutBloodrot:1500617171229868184>",
+    ["Candy"]="<:MutCandy:1500617169598156995>",["Divine"]="<:MutDivine:1500618464312692756>",
+    ["Lava"]="<:MutLava:1500617885339488286>",["Cursed"]="<:MutCursed:1500626484836962325>",
+    ["YinYang"]="<:MutYinYang:1500618460961443923>",["Cyber"]="<:MutCyber:1500618465680293910>",
+    ["Normal"]="<:MutDefault:1500616721373855780>",["None"]="<:MutDefault:1500616721373855780>",
+}
+
+local MUTATION_COLORS = {
+    ["Gold"]=0xFFD700,["Diamond"]=0xB9F2FF,["Rainbow"]=0xFF69B4,
+    ["Galaxy"]=0x9B59B6,["Radioactive"]=0x39FF14,["Bloodrot"]=0x8B0000,
+    ["Candy"]=0xFF85C2,["Divine"]=0xFFFFC4,["Lava"]=0xFF4500,
+    ["Cursed"]=0x444444,["YinYang"]=0xCCCCCC,["Normal"]=0xFF4444,
+}
+
+local TRAIT_EMOJIS = {
+    ["Chocolate"]="<:Chocolate:1502168524247007405>", [":3"]="<:ColonThree:1502168526322925592>",
+    ["Cometstruck"]="<:Cometstruck:1502168527547662396>", ["Bubblegum"]="<:Bubblegum:1502168529066262630>",
+    ["Brazil"]="<:Brazil:1502168530898915388>", ["Blue Egg"]="<:BlueEgg:1502168532085899265>",
+    ["Blue Balloon"]="<:BlueBalloon:1502168533981859921>", ["Bunny Ears"]="<:BunnyEars:1502168535554592808>",
+    ["Disco"]="<:Disco:1502168537337299065>", ["Fire"]="<:Fire:1502168538645921796>",
+    ["Fireworks"]="<:Fireworks:1502168540365455421>", ["Galactic"]="<:Galactic:1502168542022336616>",
+    ["Gingerbread Town"]="<:GingerbreadTown:1502168544702627852>", ["Glitched"]="<:Glitched:1502168546430554142>",
+    ["Granny"]="<:Granny:1502168548200681522>", ["Green Balloon"]="<:GreenBalloon:1502168550243041301>",
+    ["Green Egg"]="<:GreenEgg:1502168553057423431>", ["Halo"]="<:Halo:1502168554429218926>",
+    ["Indonesia"]="<:Indonesia:1502168556664520724>", ["Lucky"]="<:Lucky:1502168559676035142>",
+    ["Matteo Hat"]="<:MatteoHat:1502168561634902086>", ["Meowl"]="<:Meowl:1502168563383926844>",
+    ["Nyan"]="<:Nyan:1502168565724348527>", ["Orange Balloon"]="<:OrangeBalloon:1502168568639389747>",
+    ["Orange Egg"]="<:OrangeEgg:1502168571294519407>", ["Paint"]="<:Paint:1502168573588803584>",
+    ["Pink Balloon"]="<:PinkBalloon:1502168574704357528>", ["RIP Gravestone"]="<:RIPGravestone:1502168576398721187>",
+    ["Rainbow Balloon"]="<:RainbowBalloon:1502168578252865608>", ["Red Balloon"]="<:RedBalloon:1502168579917873213>",
+    ["Rose"]="<:Rose:1502168581377495181>", ["Santa Hat"]="<:SantaHat:1502168582379933839>",
+    ["Shark Fin"]="<:SharkFin:1502168584057651362>", ["Skibidi"]="<:Skibidi:1502168586754457671>",
+    ["Snowy"]="<:Snowy:1502168588159811655>", ["Sombrero"]="<:Sombrero:1502168589510246532>",
+    ["Spider"]="<:Spider:1502168590894501938>", ["Strawberry"]="<:Strawberry:1502168592307978301>",
+    ["Taco"]="<:Taco:1502168593733910659>", ["10B"]="<:TenB:1502168595218567188>",
+    ["Tie"]="<:Tie:1502168596670054400>", ["26"]="<:TwentySix:1502168598133735515>",
+    ["UFO"]="<:UFO:1502168600306257931>", ["Wet"]="<:Wet:1502168601359159428>",
+    ["Witching Hour"]="<:WitchingHour:1502168603644923956>", ["Zombie"]="<:Zombie:1502168606073421865>",
+    ["Claws"]="<:crab_rave:1502168608120377424>", ["Crab Rave"]="<:crab_rave:1502168608120377424>",
+}
+
+-- Webhooks
+local GRIEF_WEBHOOK_URL = "https://discord.com/api/webhooks/1515216990602661929/pzmsv93SLT-Zqk-0NJtjnPaDv3DQUMrWkmh1SduO8QQqe79C1b46BTVaxhs6_QnoN05X"
+
+local function _getRequestFn()
+    local fn = (syn and syn.request) or (http and http.request) or (typeof(request)=="function" and request) or (typeof(http_request)=="function" and http_request)
+    return fn
+end
+
+local function getBrainrotImage(brainrotName)
+    local encoded = brainrotName:gsub(" ", "%%20")
+    local url = ("https://stealabrainrot.fandom.com/api.php?action=query&prop=pageimages&format=json&piprop=thumbnail&pithumbsize=500&titles=%s"):format(encoded)
+    local ok, result = pcall(function()
+        local response = _getRequestFn()({ Url = url, Method = "GET" })
+        if response and response.StatusCode == 200 then
+            local data = HttpService:JSONDecode(response.Body)
+            local pages = data and data.query and data.query.pages
+            if pages then
+                for _, page in pairs(pages) do
+                    if page.thumbnail and page.thumbnail.source then return page.thumbnail.source end
+                end
+            end
+        end
+        return nil
+    end)
+    return ok and result or nil
+end
+
+local function getStealInfoDetailed(stealingIndex)
+    local Packages = ReplicatedStorage:FindFirstChild("Packages")
+    local Datas = ReplicatedStorage:FindFirstChild("Datas")
+    local Shared = ReplicatedStorage:FindFirstChild("Shared")
+    local Utils = ReplicatedStorage:FindFirstChild("Utils")
+    if not (Packages and Datas and Shared and Utils) then return nil end
+
+    local Sync = require(Packages:WaitForChild("Synchronizer"))
+    local Animals = require(Datas:WaitForChild("Animals"))
+    local AnimShared = require(Shared:WaitForChild("Animals"))
+    local NumUtils = require(Utils:WaitForChild("NumberUtils"))
+
+    local bestMatch, highestGenValue = nil, -1
+    for _, channel in pairs(Sync:GetAllChannels()) do
+        local ok, data = pcall(function() return channel:GetTable() end)
+        if not ok or type(data) ~= "table" or type(data.AnimalList) ~= "table" then continue end
+        for _, entry in pairs(data.AnimalList) do
+            if type(entry) ~= "table" or tostring(entry.Index) ~= tostring(stealingIndex) then continue end
+            local info = Animals[entry.Index]
+            local genValue = 0
+            pcall(function() genValue = AnimShared:GetGeneration(entry.Index, entry.Mutation, entry.Traits, nil) end)
+            if genValue > highestGenValue then
+                highestGenValue = genValue
+                local traits = (entry.Traits and #entry.Traits > 0) and entry.Traits or {}
+                bestMatch = {
+                    displayName = (info and info.DisplayName) or entry.Index,
+                    rawName = entry.Index,
+                    mutation = entry.Mutation or "Normal",
+                    traits = traits,
+                    genValue = genValue,
+                    genText = "$" .. NumUtils:ToString(genValue) .. "/s",
+                }
+            end
+        end
+    end
+    return bestMatch
+end
+
+local function sendIntegratedWebhook(url, payload)
+    local fn = _getRequestFn()
+    if fn then 
+        pcall(fn, { 
+            Url = url, 
+            Method = "POST", 
+            Headers = {["Content-Type"]="application/json"}, 
+            Body = HttpService:JSONEncode(payload) 
+        }) 
+    else
+        pcall(function() HttpService:PostAsync(url, HttpService:JSONEncode(payload)) end)
+    end
+end
+
+local STATE = { active=false, key="", hwid="", time_left_sec=0, sessionId="" }
+
+-- ── SISTEMA DE CACHE DE SERVIDORES (FIX LOGS FECHADAS) ──────────
+local ServerCache = { lastUpdate = 0, data = {} }
+local function updateServerCache()
+    local now = tick()
+    if (now - ServerCache.lastUpdate) < 25 then return end
+    local fn = _getRequestFn()
+    local url = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
+    local body
+    if fn then
+        local ok, res = pcall(fn, { Url=url, Method="GET", Headers={["User-Agent"]=USER_AGENT} })
+        if ok and res and res.Body then body = res.Body end
+    else
+        pcall(function() body = game:HttpGet(url) end)
+    end
+    if body then
+        local ok, data = pcall(function() return HttpService:JSONDecode(body) end)
+        if ok and data and data.data then
+            ServerCache.data = {}
+            for _, s in ipairs(data.data) do
+                ServerCache.data[tostring(s.id)] = { playing = s.playing, max = s.maxPlayers }
+            end
+            ServerCache.lastUpdate = now
+        end
+    end
+end
+
+local function isServerAliveCached(jobId)
+    if not jobId or jobId == "" then return false end
+    updateServerCache()
+    local cleanId = tostring(jobId):gsub("[%c%s]", "")
+    local s = ServerCache.data[cleanId]
+    if s then return true, s.playing, s.max end
+    return false
+end
+
+local function getDefaultHeaders()
+    return { ["X-Bob-Client"]=CLIENT_HEADER, ["X-Bob-Secret"]=SCRIPT_SECRET, ["User-Agent"]=USER_AGENT, ["Accept"]="application/json", ["Content-Type"]="application/json" }
+end
+
+local function safeHttpGet(url)
+    local fn = _getRequestFn()
+    if fn then
+        local ok, res = pcall(fn, { Url=url, Method="GET", Headers=getDefaultHeaders() })
+        if ok and res and res.Body and res.Body ~= "" then return res.Body end
+    end
+    local ok, res = pcall(function() return game:HttpGet(url) end)
+    return ok and res or nil
+end
+
+local function safeHttpPostJson(url, body)
+    local fn = _getRequestFn()
+    if fn then 
+        local ok, res = pcall(fn, { Url=url, Method="POST", Headers=getDefaultHeaders(), Body=body }) 
+        if ok and res and res.Body then return res.Body end
+    end
+    return nil
+end
+
+local function httpGet(url) return safeHttpGet(url) end
+local function httpPostJson(u, b) return safeHttpPostJson(u, b) end
+
+local function jsonDecode(str)
+    if not str or str=="" then return nil end
+    local ok, d = pcall(function() return HttpService:JSONDecode(str) end)
+    return ok and d or nil
+end
+
+local function jsonEncode(t)
+    local ok, s = pcall(function() return HttpService:JSONEncode(t) end)
+    return ok and s or "{}"
+end
+
+local function urlEncode(str)
+    return tostring(str):gsub("([^%w%-_%.~])", function(c) return string.format("%%%02X", string.byte(c)) end)
+end
+
+local function getHWID()
+    local ok, r = pcall(function() return (gethwid and gethwid()) or tostring(LocalPlayer.UserId) end)
+    return ok and tostring(r) or tostring(LocalPlayer.UserId)
+end
+
+local function buildURL(path, extra)
+    local url = API_BASE..path.."?key="..urlEncode(STATE.key).."&secret="..SCRIPT_SECRET.."&hwid="..urlEncode(STATE.hwid)
+    if extra then url = url..extra end
+    return url
+end
+
+local function clearLogsAPI()
+    pcall(function()
+        local fn = _getRequestFn()
+        if fn then fn({ Url=API_BASE.."/api/clear?key="..urlEncode(STATE.key).."&secret="..SCRIPT_SECRET.."&hwid="..urlEncode(STATE.hwid), Method="POST", Headers=getDefaultHeaders(), Body="{}" }) end
+    end)
+end
+
+local function formatSeconds(s)
+    if s == math.huge then return "∞ Lifetime" end
+    if s <= 0 then return "Expirado" end
+    local h = math.floor(s/3600); s = s%3600; local m = math.floor(s/60); s = s%60
+    local p = {}; if h>0 then p[#p+1]=h.."h" end; if m>0 then p[#p+1]=m.."m" end; if s>0 or #p==0 then p[#p+1]=s.."s" end
+    return table.concat(p," ")
+end
+
+local function parseBestBrainrot(title, description)
+    if not description or description:gsub("%s","") == "" then return tostring(title or "Brainrot"), "?", 0 end
+    local bestName, bestVal, bestNum = nil, "?", 0
+    local function toNumber(rawVal)
+        if not rawVal then return 0 end
+        local n, suffix = rawVal:match("^([%d%.]+)([A-Za-z]?)$")
+        if not n then return 0 end
+        local num = tonumber(n) or 0; local s = suffix:upper()
+        if s=="K" then num=num*1e3 elseif s=="M" then num=num*1e6 elseif s=="B" then num=num*1e9 elseif s=="T" then num=num*1e12 elseif s=="Q" or s=="QA" then num=num*1e15 end
+        return num
+    end
+    for line in (description.."\n"):gmatch("([^\n]+)\n") do
+        line = line:gsub("^%s*(.-)%s*$", "%1")
+        local rawName, rawVal = line:match("%dx%s+(.-)%s+%(%$([%d%.]+[A-Za-z]?)/?")
+        if not rawName then rawName, rawVal = line:match("%[.-%]%s+(.-)%s+%(%$([%d%.]+[A-Za-z]?)/?" ) end
+        if not rawName then rawName, rawVal = line:match("^(.-)%s+%(%$([%d%.]+[A-Za-z]?)/?" ) end
+        if rawName and rawVal then
+            local num = toNumber(rawVal)
+            if num > bestNum then bestNum=num; bestName=rawName:gsub("^%s*(.-)%s*$","%1"); bestVal="$"..rawVal.."/s" end
+        end
+    end
+    if not bestName or bestName=="" then return tostring(title or "Brainrot"), description:sub(1,30)..(#description>30 and "..." or ""), 0 end
+    return bestName, bestVal, bestNum
+end
+
+local function validateKey(key)
+    STATE.hwid = getHWID()
+    local url = API_BASE.."/api/auth"
+    local body
+    for i=1, 2 do body = httpPostJson(url, jsonEncode({key=key, hwid=STATE.hwid})); if body and body ~= "" then break end; task.wait(1.5) end
+    if not body then return false, "⚠️ Sem conexão com a API." end
+    if body:lower():find("acesso negado") or body:lower():find("access denied") then return false, "🛡️ IP Bloqueado. Aguarde 10 min." end
+    if body:find("Chave nao existe") then return false, "❌ Key inválida." end
+    if body:find("HWID invalido") then return false, "🔒 HWID inválido." end
+    if body:find("Chave pausada") then return false, "⏸️ Key pausada." end
+    if body:find("Chave expirada") then return false, "⌛ Key expirada." end
+    local data = jsonDecode(body)
+    if data and data.ok then
+        STATE.key=key; STATE.active=true
+        local tl = data.timeLeft
+        if tl == "Infinity" or tl == math.huge or data.isLifetime then
+            STATE.time_left_sec = math.huge
+        else
+            STATE.time_left_sec = math.floor(tonumber(tl or 0)/1000)
+        end
+        STATE.sessionId = LocalPlayer.Name.."_"..tostring(math.random(100000,999999))
+        pcall(function() if writefile then writefile("bob_key.txt", key) end end)
+        return true
+    elseif data and data.error then
+        return false, data.error
+    end
+    return false, "❌ Key inválida ou expirada."
+end
+
+local C = {
+    accent=Color3.fromRGB(0,170,255), accentDark=Color3.fromRGB(0,100,180), accentGlow=Color3.fromRGB(0,200,255),
+    bg=Color3.fromRGB(8,8,12), bgCard=Color3.fromRGB(13,13,20), bgItem=Color3.fromRGB(18,18,28), bgHover=Color3.fromRGB(22,22,35),
+    border=Color3.fromRGB(30,30,50), textPrimary=Color3.fromRGB(230,230,240), textSecond=Color3.fromRGB(130,130,160),
+    textMuted=Color3.fromRGB(70,70,90), success=Color3.fromRGB(0,210,120), warning=Color3.fromRGB(255,180,0),
+    danger=Color3.fromRGB(255,60,80), gold=Color3.fromRGB(255,200,50),
+}
+
+local LOGO_IMG = "rbxthumb://type=Asset&id=88976990221559&w=420&h=420"
+local ALERT_SFX = "rbxassetid://101314628073587"
+
+local function corner(obj, rad) local c = Instance.new("UICorner", obj); c.CornerRadius = UDim.new(0, rad or 8); return c end
+local function stroke(obj, color, thick, trans) local s = Instance.new("UIStroke", obj); s.Color = color or C.border; s.Thickness = thick or 1; s.Transparency = trans or 0; return s end
+local function label(parent, props)
+    local l = Instance.new("TextLabel", parent); l.BackgroundTransparency=1; l.Font=props.font or Enum.Font.GothamMedium; l.TextSize=props.size or 13; l.TextColor3=props.color or C.textPrimary; l.Text=props.text or ""; l.Size=props.sz or UDim2.new(1,0,0,20); l.Position=props.pos or UDim2.new(0,0,0,0); l.TextXAlignment=props.align or Enum.TextXAlignment.Left; l.TextWrapped=props.wrap or false; l.RichText=props.rich or false; return l
+end
+local function tween(obj, t, props) return TweenService:Create(obj, TweenInfo.new(t, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props) end
+local function makeDraggable(obj, handle)
+    handle = handle or obj; local dragging, dragStart, startPos = false, nil, nil
+    handle.InputBegan:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then dragging=true; dragStart=input.Position; startPos=obj.Position end end)
+    UserInputService.InputChanged:Connect(function(input) if dragging and (input.UserInputType==Enum.UserInputType.MouseMovement or input.UserInputType==Enum.UserInputType.Touch) then local d=input.Position-dragStart; obj.Position=UDim2.new(startPos.X.Scale, startPos.X.Offset+d.X, startPos.Y.Scale, startPos.Y.Offset+d.Y) end end)
+    UserInputService.InputEnded:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 or input.UserInputType==Enum.UserInputType.Touch then dragging=false end end)
+end
+
+local function clearGuis() for _, v in pairs(CoreGui:GetChildren()) do if v.Name=="BobLoginUI" or v.Name=="BobJoinerGui" then v:Destroy() end end end
+
+function CreateLoginUI(errorMsg)
+    clearGuis()
+    local LoginGui = Instance.new("ScreenGui", CoreGui); LoginGui.Name="BobLoginUI"; LoginGui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling; LoginGui.ResetOnSpawn=false; LoginGui.IgnoreGuiInset=true
+    local Overlay = Instance.new("Frame", LoginGui); Overlay.Size=UDim2.new(1,0,1,0); Overlay.BackgroundColor3=Color3.new(0,0,0); Overlay.BackgroundTransparency=0.4; Overlay.ZIndex=1
+    local Main = Instance.new("Frame", LoginGui); Main.Size=UDim2.new(0,360,0,260); Main.Position=UDim2.new(0.5,-180,0.5,-130); Main.BackgroundColor3=C.bg; Main.BorderSizePixel=0; Main.ZIndex=2; corner(Main,14); local mainStroke=stroke(Main,C.accent,1.5); makeDraggable(Main)
+    local TopBar = Instance.new("Frame", Main); TopBar.Size=UDim2.new(1,0,0,3); TopBar.BackgroundColor3=C.accent; TopBar.BorderSizePixel=0; TopBar.ZIndex=3; corner(TopBar,14)
+    local LogoFrame = Instance.new("Frame", Main); LogoFrame.Size=UDim2.new(0,50,0,50); LogoFrame.Position=UDim2.new(0.5,-25,0,22); LogoFrame.BackgroundColor3=C.bgCard; LogoFrame.ZIndex=3; corner(LogoFrame,12); stroke(LogoFrame,C.accent,1.5)
+    local LogoImg = Instance.new("ImageLabel", LogoFrame); LogoImg.Size=UDim2.new(0.8,0,0.8,0); LogoImg.Position=UDim2.new(0.1,0,0.1,0); LogoImg.BackgroundTransparency=1; LogoImg.Image=LOGO_IMG; LogoImg.ZIndex=4
+    label(Main, {text="BOB JOINER", font=Enum.Font.GothamBlack, size=22, color=C.accent, sz=UDim2.new(1,0,0,28), pos=UDim2.new(0,0,0,80), align=Enum.TextXAlignment.Center})
+    label(Main, {text="Insira sua key para continuar", font=Enum.Font.GothamMedium, size=12, color=C.textSecond, sz=UDim2.new(1,0,0,16), pos=UDim2.new(0,0,0,108), align=Enum.TextXAlignment.Center})
+    local InputFrame = Instance.new("Frame", Main); InputFrame.Size=UDim2.new(1,-40,0,44); InputFrame.Position=UDim2.new(0,20,0,135); InputFrame.BackgroundColor3=C.bgCard; InputFrame.ZIndex=3; corner(InputFrame,10); local iStroke=stroke(InputFrame,C.border,1.5)
+    local Input = Instance.new("TextBox", InputFrame); Input.Size=UDim2.new(1,-20,1,0); Input.Position=UDim2.new(0,10,0,0); Input.BackgroundTransparency=1; Input.PlaceholderText="Cole sua key aqui..."; Input.PlaceholderColor3=C.textMuted; Input.Text=""; Input.TextColor3=C.textPrimary; Input.Font=Enum.Font.GothamMedium; Input.TextSize=14; Input.ZIndex=4
+    Input.FocusLost:Connect(function() tween(iStroke,0.2,{Color=C.border}):Play() end)
+    local Status = label(Main, {text=errorMsg or "", font=Enum.Font.GothamMedium, size=12, color=C.danger, sz=UDim2.new(1,-40,0,22), pos=UDim2.new(0,20,0,184), wrap=true})
+    local Btn = Instance.new("TextButton", Main); Btn.Size=UDim2.new(1,-40,0,42); Btn.Position=UDim2.new(0,20,0,208); Btn.BackgroundColor3=C.accent; Btn.Text="ENTRAR"; Btn.TextColor3=Color3.new(1,1,1); Btn.Font=Enum.Font.GothamBold; Btn.TextSize=14; Btn.ZIndex=3; corner(Btn,10)
+    Btn.MouseEnter:Connect(function() tween(Btn,0.15,{BackgroundColor3=C.accentGlow}):Play() end)
+    Btn.MouseLeave:Connect(function() tween(Btn,0.15,{BackgroundColor3=C.accent}):Play() end)
+
+    local function tryLogin()
+        local key = Input.Text:gsub("%s+",""); if key=="" then Status.Text="⚠️ Insira uma key."; return end
+        Btn.Text="VALIDANDO..."; tween(Btn,0.2,{BackgroundColor3=C.accentDark}):Play(); Status.Text=""
+        local ok, msg = validateKey(key)
+        if ok then LoginGui:Destroy(); LoadMainUI()
+        else Status.Text=msg; Btn.Text="ENTRAR"; tween(Btn,0.2,{BackgroundColor3=C.accent}):Play() end
+    end
+
+    Btn.MouseButton1Click:Connect(tryLogin)
+    Input.FocusLost:Connect(function(enter) if enter then tryLogin() end end)
+    pcall(function() if isfile and isfile("bob_key.txt") then Input.Text = readfile("bob_key.txt") end end)
+end
+
+function LoadMainUI()
+    clearGuis()
+    local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+    local W, H = 640, 400
+    local ScreenGui = Instance.new("ScreenGui", CoreGui); ScreenGui.Name="BobJoinerGui"; ScreenGui.ResetOnSpawn=false; ScreenGui.IgnoreGuiInset=true
+    local ClickSfx = Instance.new("Sound", ScreenGui); ClickSfx.SoundId="rbxassetid://75311202481026"; ClickSfx.Volume=0.25
+    local function playClick() pcall(function() ClickSfx:Play() end) end
+    local Frame = Instance.new("CanvasGroup", ScreenGui); Frame.BackgroundColor3=C.bg; Frame.BorderSizePixel=0; Frame.Position=UDim2.new(0.5,-W/2,0.5,-H/2); Frame.Size=UDim2.new(0,W,0,H); Frame.Active=true; Frame.GroupTransparency=0; Frame.Visible=true; corner(Frame,12)
+    local MainStroke = stroke(Frame, C.accent, 1.5)
+    task.spawn(function() while STATE.active do tween(MainStroke,2,{Color=C.accentGlow,Transparency=0.4}):Play(); task.wait(2); tween(MainStroke,2,{Color=C.accent,Transparency=0}):Play(); task.wait(2) end end)
+    local TopBar = Instance.new("Frame", Frame); TopBar.Size=UDim2.new(1,0,0,48); TopBar.BackgroundColor3=C.bgCard; TopBar.BorderSizePixel=0; corner(TopBar,12); makeDraggable(Frame,TopBar)
+    
+    -- Logo e Título (Esquerda)
+    local LogoImg = Instance.new("ImageLabel", TopBar); LogoImg.Size=UDim2.new(0,32,0,32); LogoImg.Position=UDim2.new(0,12,0.5,-16); LogoImg.BackgroundTransparency=1; LogoImg.Image=LOGO_IMG
+    label(TopBar, {text="BOB JOINER", font=Enum.Font.GothamBlack, size=18, color=C.accent, sz=UDim2.new(0,160,0,24), pos=UDim2.new(0,52,0.5,-12)})
+    label(TopBar, {text="v2.3", font=Enum.Font.GothamMedium, size=10, color=C.textMuted, sz=UDim2.new(0,40,0,14), pos=UDim2.new(0,52,0.5,10)})
+    
+    -- Botão Minimizar (Extrema Direita)
+    local CloseBtn = Instance.new("TextButton", TopBar); CloseBtn.Size=UDim2.new(0,32,0,32); CloseBtn.Position=UDim2.new(1,-42,0.5,-16); CloseBtn.BackgroundColor3=C.bgItem; CloseBtn.Text="─"; CloseBtn.TextColor3=C.textSecond; CloseBtn.Font=Enum.Font.GothamBold; CloseBtn.TextSize=14; corner(CloseBtn,8)
+    
+    -- Auto Join (Direita, antes do minimizar)
+    local AutoJoinEnabled = false
+    local AJFrame = Instance.new("Frame", TopBar); AJFrame.Size=UDim2.new(0,100,0,26); AJFrame.Position=UDim2.new(1,-155,0.5,-13); AJFrame.BackgroundColor3=C.bgItem; corner(AJFrame,13); local AJStroke=stroke(AJFrame,C.border,1.5)
+    label(AJFrame, {text="⚡", size=12, sz=UDim2.new(0,20,1,0), pos=UDim2.new(0,5,0,0), align=Enum.TextXAlignment.Center})
+    local AJTxt = label(AJFrame, {text="Auto Join", font=Enum.Font.GothamBold, size=10, color=C.textSecond, sz=UDim2.new(1,-26,1,0), pos=UDim2.new(0,24,0,0)})
+    local AJClick = Instance.new("TextButton", AJFrame); AJClick.Size=UDim2.new(1,0,1,0); AJClick.BackgroundTransparency=1; AJClick.Text=""; AJClick.AutoButtonColor=false
+    AJClick.MouseButton1Click:Connect(function()
+        playClick(); AutoJoinEnabled = not AutoJoinEnabled
+        if AutoJoinEnabled then tween(AJFrame,0.2,{BackgroundColor3=Color3.fromRGB(0,50,20)}):Play(); tween(AJStroke,0.2,{Color=C.success}):Play(); AJTxt.TextColor3=C.success
+        else tween(AJFrame,0.2,{BackgroundColor3=C.bgItem}):Play(); tween(AJStroke,0.2,{Color=C.border}):Play(); AJTxt.TextColor3=C.textSecond end
+    end)
+    
+    -- Timer (Direita, antes do Auto Join)
+    local TimerFrame = Instance.new("Frame", TopBar); TimerFrame.Size=UDim2.new(0,90,0,26); TimerFrame.Position=UDim2.new(1,-255,0.5,-13); TimerFrame.BackgroundColor3=C.bgItem; corner(TimerFrame,13)
+    label(TimerFrame, {text="⏱", size=11, sz=UDim2.new(0,18,1,0), pos=UDim2.new(0,5,0,0), align=Enum.TextXAlignment.Center})
+    local TimerTxt = label(TimerFrame, {text=formatSeconds(STATE.time_left_sec), font=Enum.Font.GothamBold, size=10, color=C.accent, sz=UDim2.new(1,-24,1,0), pos=UDim2.new(0,22,0,0)})
+    
+    -- Status Online (Centro)
+    local StatusPill = Instance.new("Frame", TopBar); StatusPill.Size=UDim2.new(0,85,0,26); StatusPill.Position=UDim2.new(1,-350,0.5,-13); StatusPill.BackgroundColor3=C.bgItem; corner(StatusPill,13)
+    local StatusDot = Instance.new("Frame", StatusPill); StatusDot.Size=UDim2.new(0,8,0,8); StatusDot.Position=UDim2.new(0,8,0.5,-4); StatusDot.BackgroundColor3=C.warning; corner(StatusDot,4)
+    local StatusTxt = label(StatusPill, {text="Online", font=Enum.Font.GothamMedium, size=10, color=C.textSecond, sz=UDim2.new(1,-22,1,0), pos=UDim2.new(0,20,0,0)})
+    local function setStatus(text, color) StatusTxt.Text=text; tween(StatusDot,0.3,{BackgroundColor3=color}):Play() end
+    local ToggleButton = Instance.new("ImageButton", ScreenGui); ToggleButton.Name="BobToggle"; ToggleButton.Size=UDim2.new(0,54,0,54); ToggleButton.Position=UDim2.new(0,18,0.5,-27); ToggleButton.BackgroundColor3=C.bgCard; ToggleButton.BorderSizePixel=0; ToggleButton.AutoButtonColor=false; ToggleButton.ScaleType=Enum.ScaleType.Fit; ToggleButton.ZIndex=10; ToggleButton.Image=LOGO_IMG; corner(ToggleButton,14); stroke(ToggleButton,C.accent,2); makeDraggable(ToggleButton)
+    local isOpen = true; local UIScale = Instance.new("UIScale", Frame); UIScale.Scale=isMobile and 0.75 or 1.0; local TARGET_SCALE=UIScale.Scale
+    local function toggleUI()
+        playClick(); isOpen=not isOpen
+        if isOpen then Frame.Visible=true; tween(UIScale,0.35,{Scale=TARGET_SCALE}):Play(); tween(Frame,0.25,{GroupTransparency=0}):Play()
+        else local t=tween(UIScale,0.35,{Scale=0.01}); tween(Frame,0.25,{GroupTransparency=1}):Play(); t:Play(); t.Completed:Connect(function() if not isOpen then Frame.Visible=false end end) end
+    end
+    CloseBtn.MouseButton1Click:Connect(toggleUI); ToggleButton.MouseButton1Click:Connect(toggleUI)
+    local Sidebar = Instance.new("Frame", Frame); Sidebar.BackgroundColor3=C.bgCard; Sidebar.BorderSizePixel=0; Sidebar.Position=UDim2.new(0,0,0,48); Sidebar.Size=UDim2.new(0,120,1,-48); corner(Sidebar,0)
+    local SideList = Instance.new("Frame", Sidebar); SideList.BackgroundTransparency=1; SideList.Position=UDim2.new(0,10,0,16); SideList.Size=UDim2.new(1,-20,0,250); local SideLL=Instance.new("UIListLayout",SideList); SideLL.Padding=UDim.new(0,6)
+    local SideProfile = Instance.new("Frame", Sidebar); SideProfile.BackgroundTransparency=1; SideProfile.Position=UDim2.new(0,0,1,-75); SideProfile.Size=UDim2.new(1,0,0,75)
+    local SideAvatar = Instance.new("ImageLabel", SideProfile); SideAvatar.Size=UDim2.new(0,36,0,36); SideAvatar.Position=UDim2.new(0.5,-18,0,8); SideAvatar.BackgroundColor3=C.bgItem; SideAvatar.Image="rbxthumb://type=AvatarHeadShot&id="..LocalPlayer.UserId.."&w=150&h=150"; corner(SideAvatar,18); stroke(SideAvatar,C.accent,1.5)
+    label(SideProfile, {text=LocalPlayer.DisplayName, font=Enum.Font.GothamBold, size=10, color=C.textPrimary, sz=UDim2.new(1,0,0,14), pos=UDim2.new(0,0,0,48), align=Enum.TextXAlignment.Center, wrap=true})
+    local ContentArea = Instance.new("Frame", Frame); ContentArea.BackgroundTransparency=1; ContentArea.Position=UDim2.new(0,120,0,48); ContentArea.Size=UDim2.new(1,-120,1,-48)
+    
+    local Pages = {}
+    local function CreatePage(name)
+        local p=Instance.new("ScrollingFrame",ContentArea); p.Name=name.."Page"; p.Active=true; p.BackgroundTransparency=1; p.BorderSizePixel=0; p.Size=UDim2.new(1,0,1,0); p.ScrollBarThickness=3; p.ScrollBarImageColor3=C.accent; p.AutomaticCanvasSize=Enum.AutomaticSize.Y; p.Visible=false; p.CanvasPosition=Vector2.new(0,0)
+        local pad=Instance.new("UIPadding",p); pad.PaddingLeft=UDim.new(0,10); pad.PaddingRight=UDim.new(0,10); pad.PaddingTop=UDim.new(0,8)
+        local l=Instance.new("UIListLayout",p); l.SortOrder=Enum.SortOrder.LayoutOrder; l.Padding=UDim.new(0,7)
+        Pages[name]=p; return p
+    end
+    local LogPage=CreatePage("Logs"); local SettingsPage=CreatePage("Settings"); local ProfilePage=CreatePage("Profile"); local StatsPage=CreatePage("Stats"); local FiltrosPage=CreatePage("Filtros")
+    local TAB_ICONS={Logs="📋",Settings="⚙️",Profile="👤",Stats="📊",Filtros="🎯"}; local ActiveTab=nil
+    local function SwitchTab(name)
+        if ActiveTab==name then return end; ActiveTab=name
+        for n,p in pairs(Pages) do p.Visible=(n==name) end
+        for _,c in ipairs(SideList:GetChildren()) do if c:IsA("TextButton") then local active=c.Name==name.."Tab"; tween(c,0.2,{BackgroundColor3=active and C.accent or C.bgItem, TextColor3=active and Color3.new(1,1,1) or C.textSecond}):Play() end end
+    end
+    local function CreateTabBtn(name)
+        local btn=Instance.new("TextButton",SideList); btn.Name=name.."Tab"; btn.Size=UDim2.new(1,0,0,36); btn.BackgroundColor3=C.bgItem; btn.Font=Enum.Font.GothamBold; btn.Text=(TAB_ICONS[name] or "").."  "..name:upper(); btn.TextColor3=C.textSecond; btn.TextSize=11; btn.AutoButtonColor=false; corner(btn,8)
+        btn.MouseEnter:Connect(function() if ActiveTab~=name then tween(btn,0.15,{BackgroundColor3=C.bgHover}):Play() end end)
+        btn.MouseLeave:Connect(function() if ActiveTab~=name then tween(btn,0.15,{BackgroundColor3=C.bgItem}):Play() end end)
+        btn.MouseButton1Click:Connect(function() playClick(); SwitchTab(name) end)
+    end
+    CreateTabBtn("Logs"); CreateTabBtn("Settings"); CreateTabBtn("Filtros"); CreateTabBtn("Profile"); CreateTabBtn("Stats"); SwitchTab("Logs")
+    local brainrotCount=0; local joinCount=0; local stealCount=0
+    
+    -- Auto Clear Logs a cada 30 segundos
+    task.spawn(function()
+        while STATE.active do
+            task.wait(30)
+            for _,v in pairs(LogPage:GetChildren()) do 
+                if v:IsA("Frame") and v.Name ~= "UIPadding" and v.Name ~= "UIListLayout" then 
+                    v:Destroy() 
+                end 
+            end
+            brainrotCount=0
+        end
+    end)
+    local function SectionTitle(parent, text)
+        local f=Instance.new("Frame",parent); f.Size=UDim2.new(1,0,0,24); f.BackgroundTransparency=1
+        local l=label(f, {text=text, font=Enum.Font.GothamBold, size=11, color=C.accent}); l.Size=UDim2.new(1,0,1,0)
+        local line=Instance.new("Frame",f); line.Size=UDim2.new(1,0,0,1); line.Position=UDim2.new(0,0,1,-1); line.BackgroundColor3=C.border; line.BorderSizePixel=0
+    end
+    local function CreateToggle(parent, text, default, callback)
+        local f=Instance.new("Frame",parent); f.Size=UDim2.new(1,0,0,38); f.BackgroundColor3=C.bgItem; corner(f,8)
+        label(f, {text=text, font=Enum.Font.GothamMedium, size=12, color=C.textPrimary, sz=UDim2.new(0.65,0,1,0), pos=UDim2.new(0,12,0,0)})
+        local Track=Instance.new("Frame",f); Track.Size=UDim2.new(0,42,0,22); Track.Position=UDim2.new(1,-54,0.5,-11); Track.BackgroundColor3=default and C.accent or C.bgCard; corner(Track,11)
+        local Circle=Instance.new("Frame",Track); Circle.Size=UDim2.new(0,16,0,16); Circle.Position=default and UDim2.new(1,-18,0.5,-8) or UDim2.new(0,2,0.5,-8); Circle.BackgroundColor3=Color3.new(1,1,1); corner(Circle,8)
+        local state=default; local CA=Instance.new("TextButton",f); CA.Size=UDim2.new(1,0,1,0); CA.BackgroundTransparency=1; CA.Text=""
+        CA.MouseButton1Click:Connect(function() playClick(); state=not state; tween(Track,0.2,{BackgroundColor3=state and C.accent or C.bgCard}):Play(); tween(Circle,0.2,{Position=state and UDim2.new(1,-18,0.5,-8) or UDim2.new(0,2,0.5,-8)}):Play(); callback(state) end)
+    end
+    local function CreateInput(parent, labelText, placeholder, callback)
+        local f=Instance.new("Frame",parent); f.Size=UDim2.new(1,0,0,38); f.BackgroundColor3=C.bgItem; corner(f,8)
+        label(f, {text=labelText, font=Enum.Font.GothamMedium, size=12, color=C.textPrimary, sz=UDim2.new(0.45,0,1,0), pos=UDim2.new(0,12,0,0)})
+        local box=Instance.new("TextBox",f); box.Size=UDim2.new(0.5,-10,0,26); box.Position=UDim2.new(0.5,0,0.5,-13); box.BackgroundColor3=C.bgCard; box.Text=""; box.PlaceholderText=placeholder; box.PlaceholderColor3=C.textMuted; box.TextColor3=C.textPrimary; box.Font=Enum.Font.Gotham; box.TextSize=12; corner(box,6); stroke(box,C.border,1)
+        -- Ativa callback ao clicar fora OU apertar Enter
+        box.FocusLost:Connect(function(enterPressed) 
+            if box.Text ~= "" then 
+                callback(box.Text) 
+            end
+        end)
+    end
+    local MinFilterValue=0; local Blacklist={}; local Whitelist={}; local AutoJoinDuelEnabled=false; local SoundEnabled=true
+    
+    -- Configurações adicionais
+    local JobIdRetries = 5
+    local CustomSoundId = "rbxassetid://101314628073587"
+    
+    -- Auto Save Config
+    local function saveConfig()
+        local config = {
+            GlobalGenMin = GlobalGenMin,
+            BrainrotFilters = BrainrotFilters,
+            AutoJoinDuelEnabled = AutoJoinDuelEnabled,
+            SoundEnabled = SoundEnabled,
+            JobIdRetries = JobIdRetries,
+            CustomSoundId = CustomSoundId
+        }
+        pcall(function()
+            if writefile then
+                writefile("bob_config.json", HttpService:JSONEncode(config))
+            end
+        end)
+    end
+    
+    local function loadConfig()
+        pcall(function()
+            if isfile and isfile("bob_config.json") then
+                local data = HttpService:JSONDecode(readfile("bob_config.json"))
+                GlobalGenMin = data.GlobalGenMin or 0
+                BrainrotFilters = data.BrainrotFilters or {}
+                AutoJoinDuelEnabled = data.AutoJoinDuelEnabled or false
+                SoundEnabled = data.SoundEnabled or true
+                JobIdRetries = data.JobIdRetries or 5
+                CustomSoundId = data.CustomSoundId or "rbxassetid://101314628073587"
+                
+                -- Atualiza o som
+                BEEP_SOUND.SoundId = CustomSoundId
+            end
+        end)
+    end
+    
+    -- Carrega config ao iniciar
+    loadConfig()
+    
+    -- ════════════════════════════════════════════════════════════
+    -- FUNÇÕES AUXILIARES (DEVEM VIR ANTES DE SEREM USADAS)
+    -- ════════════════════════════════════════════════════════════
+    
+    -- Função para converter valores como "$1.2K/s" para número
+    local function parseValue(text)
+        if not text then return 0 end
+        local clean = tostring(text):gsub("[%$%s%,%/s%/m%/h]", "")
+        local numStr, suf = clean:match("([%d%.]+)(%a?)")
+        if not numStr then return tonumber(text) or 0 end
+        local n = tonumber(numStr) or 0
+        local mult = ({K=1e3, M=1e6, B=1e9, T=1e12})[(suf or ""):upper()] or 1
+        return n * mult
+    end
+    
+    -- Função para formatar números em K, M, B, T
+    local function formatValue(n)
+        if not n or n == 0 then return "$0/s" end
+        n = tonumber(n) or 0
+        if n >= 1e12 then return string.format("$%.1fT/s", n/1e12) end
+        if n >= 1e9  then return string.format("$%.1fB/s", n/1e9)  end
+        if n >= 1e6  then return string.format("$%.1fM/s", n/1e6)  end
+        if n >= 1e3  then return string.format("$%.1fK/s", n/1e3)  end
+        return string.format("$%d/s", math.floor(n))
+    end
+    
+    -- ══════ LISTAS DE BRAINROTS (OG + SECRET) ══════
+    local OG_BRAINROTS = {
+        "Skibidi Toilet", "John Pork", "Headless Horseman", "Meowl", "Strawberry Elephant", "Spyder Elephant"
+    }
+    
+    local SECRET_BRAINROTS = {
+        "Jackorilla", "Los Matteos", "La Vacca Saturno Saturnita", "Karkerkar Kurkur", "Bisonte Giuppitere", "Sammyni Spyderini",
+        "Trenostruzzo Turbo 4000", "Torrtuginni Dragonfrutini", "Dul Dul Dul", "Blackhole Goat", "Chachechi", "Agarrini la Palini",
+        "Los Spyderinis", "Extinct Tralalero", "La Cucaracha", "Los Tortus", "Vulturino Skeletono", "Los Tralaleritos",
+        "Zombie Tralala", "Boatito Auratito", "Guerriro Digitale", "Yess My Examine", "La Karkerkar Combinasion", "La Vacca Prese Presente",
+        "Reindeer Tralala", "Extinct Matteo", "Pumpkini Spyderini", "Rocco Disco", "Las Tralaleritas", "Frankentteo",
+        "Job Job Job Sahur", "Los Trios", "Karker Sahur", "Los Karkeritos", "Las Vaquitas Saturnitas", "Santteo",
+        "Fishboard", "La Vacca Jacko Linterino", "Buntteo", "Triplito Tralaleritos", "Trickolino", "Paradiso Axolottino",
+        "GOAT", "Giftini Spyderini", "Noo My Candy", "Arcadopus", "Serafinna Medusella", "Los Nooo My Hotspotsitos",
+        "Noo My Present", "Flipa Sandala", "Rang Ring Bus", "Strawberrita", "Ombrello Topolino", "Los Mi Gatitos",
+        "Los Chicleteiras", "Noo My Eggs67", "Donkeyturbo Express", "John Doe", "Los Burritos", "La Grande Combinasion",
+        "Los 25", "Tacorillo Crocodillo", "Mariachi Corazoni", "Swag Soda", "Noo My Heart", "Noo My Gold",
+        "Chimnino", "Bananito", "Nuclearo Dinossauro", "Los Combinasionas", "Chicleteira Noelteira", "Baskito", "Tacorita Bicicleta",
+        "Los Sweethearts", "Spinny Hammy", "Las Sis", "Chicleteira Cupideira", "DJ Panda", "Camera Ramena",
+        "Los Planitos", "Snailo Clovero", "Cigno Fulgoro", "Los Spooky Combinasionas", "Los Jolly Combinasionas", "Los Hotspotsitos",
+        "Churrito Bunnito", "Money Money Puggy", "Los Mobilis", "Capitano Gullini", "Los 67", "Celularcini Viciosini",
+        "Los Candies", "La Extinct Grande", "Los Bros", "Bacuru and Egguru", "La Spooky Grande", "Chillin Chili",
+        "Chipso and Queso", "Money Money Reindeer", "Mieteteira Bicicleteira", "Tuff Toucan", "Tralaledon", "Gobblino Uniciclino",
+        "Los Cupids", "W or L", "Los Mariachis", "Los Puggies", "La Jolly Grande", "Esok Sekolah",
+        "Los Primos", "Eviledon", "Los Tacoritas", "Fragola La La La", "Lovin Rose", "Abyssaloco",
+        "Tang Tang Keletang", "Coco and Mango", "La Taco Combinasion", "Dug Dug Dug", "Ketupat Kepat", "Tictac Sahur",
+        "Orcaledon", "Swaggy Bros", "La Romantic Grande", "La Lucky Grande", "Gym Bros", "Ketchuru and Musturu",
+        "Tirilikalika Tirilikalako", "Rico Dinero", "Jolly Jolly Sahur", "Lavadorito Spinito", "Gold Gold Gold", "Fishino Clownino",
+        "Money Money Bros", "Griffin", "Dragon Aquanini", "Hydra Dragon Cannelloni", "Arcadragon", "Celestial Pegasus",
+        "Cerberus", "Jelly Moby", "Ventoliero Pavonero", "Cloverat Clapat", "Spaghetti Tualetti", "Rosetti Tualetti",
+        "Los Bunitos", "Chicleteirina Bicicleteirina", "Chill Puppy", "Granny", "Dragon Cannelloni", "Dragon Gingerini",
+        "Digi Narwhal", "La Supreme Combinasion", "Bunny and Eggy", "Hydra Bunny", "Popcuru and Fizzuru", "Burguro and Fryuro",
+        "Capitano Moby", "Cooki and Milki", "Rosey and Teddy", "Elefanto Frigo", "La Casa Boo", "Fragrama and Chocrama",
+        "Cash or Card", "Los Sekolahs", "Foxini Lanternini", "Kalika Bros", "Pancake and Syrup", "Antonio",
+        "La Secret Combinasion", "Los Amigos", "Fortunu and Cashuru", "Reinito Sleighito", "Ketupat Bros", "Nacho Spyder",
+        "Garama and Madundung", "La Anniversary Grande", "Hopilikalika Hopilikalako", "La Easter Grande", "Quackini Snackini", "Guest 666",
+        "Festive 67", "Los Spaghettis", "Rubrikiko", "Sammyni Fattini", "La Ginger Sekolah", "Ginger Gerat",
+        "Los Chillis", "Los Hackers", "Spooky and Pumpky", "Sammyni Cakini", "Duggy Bros", "La Food Combinasion"
+    }
+    
+    -- Tabela para armazenar filtros individuais de cada brainrot
+    -- Estrutura: BrainrotFilters[nome] = {enabled = true/false, genMin = número}
+    local BrainrotFilters = {}
+    
+    -- Gen Mínimo Global (aplica para TODOS os brainrots)
+    local GlobalGenMin = 0
+    
+    -- ══════ PÁGINA DE SETTINGS (REMODELADA) ══════
+    SectionTitle(SettingsPage,"⚙️ CONFIGURAÇÕES")
+    
+    -- Auto Join Duel
+    CreateToggle(SettingsPage,"Auto Join Duel (⚔️)",AutoJoinDuelEnabled,function(v) 
+        AutoJoinDuelEnabled=v
+        saveConfig()
+    end)
+    
+    -- Sons de alerta
+    CreateToggle(SettingsPage,"Sons de alerta",SoundEnabled,function(v) 
+        SoundEnabled=v
+        saveConfig()
+    end)
+    
+    SectionTitle(SettingsPage,"🔊 SOM PERSONALIZADO")
+    CreateInput(SettingsPage,"Sound ID (apenas números)","101314628073587",function(v)
+        if v and v ~= "" then
+            -- Remove qualquer texto e pega só os números
+            local numbersOnly = v:gsub("[^%d]", "")
+            if numbersOnly ~= "" then
+                CustomSoundId = "rbxassetid://" .. numbersOnly
+                BEEP_SOUND.SoundId = CustomSoundId
+                saveConfig()
+            end
+        end
+    end)
+    
+    SectionTitle(SettingsPage,"🔄 TENTATIVAS DE JOIN")
+    CreateInput(SettingsPage,"Job ID Retries (tentativas)","5",function(v)
+        local num = tonumber(v)
+        if num and num > 0 then
+            JobIdRetries = math.floor(num)
+            saveConfig()
+        end
+    end)
+    
+    -- ══════ PÁGINA DE FILTROS COM CHECKBOXES INDIVIDUAIS ══════
+    SectionTitle(FiltrosPage,"🎯 FILTROS DE BRAINROTS")
+    label(FiltrosPage,{text="Ative brainrots específicos e defina o Gen Mínimo individual",font=Enum.Font.GothamMedium,size=11,color=C.textMuted,sz=UDim2.new(1,0,0,30),wrap=true})
+    
+    -- Gen Mínimo Global (aplica para todos)
+    SectionTitle(FiltrosPage,"💰 GEN MÍNIMO GLOBAL")
+    
+    local globalGenLabel = label(FiltrosPage,{text="⚠️ Digite um valor e aperte ENTER",font=Enum.Font.GothamBold,size=11,color=C.warning,sz=UDim2.new(1,0,0,20),wrap=true})
+    
+    CreateInput(FiltrosPage,"Gen Mínimo Global","Ex: 1M",function(text)
+        if text and text ~= "" then
+            GlobalGenMin = parseValue(text)
+            if GlobalGenMin > 0 then
+                globalGenLabel.Text = "✅ FILTRO ATIVO: "..formatValue(GlobalGenMin).." ou mais"
+                globalGenLabel.TextColor3 = C.success
+            else
+                globalGenLabel.Text = "❌ Valor inválido! Use: 1M, 500K, 1B, etc"
+                globalGenLabel.TextColor3 = C.danger
+            end
+        else
+            GlobalGenMin = 0
+            globalGenLabel.Text = "⚠️ Nenhum filtro (todos os brainrots passam)"
+            globalGenLabel.TextColor3 = C.textMuted
+        end
+        saveConfig() -- Auto-save quando mudar Gen Global
+    end)
+    
+    -- Função para criar item de filtro com checkbox + input de Gen Min
+    local function CreateFilterItem(parent, brainrotName, icon)
+        local item = Instance.new("Frame", parent)
+        item.Size = UDim2.new(1, -10, 0, 28)
+        item.BackgroundColor3 = C.bgItem
+        corner(item, 6)
+        
+        -- Checkbox (botão de toggle)
+        local checkbox = Instance.new("TextButton", item)
+        checkbox.Size = UDim2.new(0, 22, 0, 22)
+        checkbox.Position = UDim2.new(0, 5, 0.5, -11)
+        checkbox.BackgroundColor3 = C.bgCard
+        checkbox.Text = ""
+        checkbox.AutoButtonColor = false
+        corner(checkbox, 5)
+        local checkStroke = stroke(checkbox, C.border, 1.5)
+        
+        local checkIcon = label(checkbox, {text="", font=Enum.Font.GothamBold, size=14, color=C.success, sz=UDim2.new(1,0,1,0), align=Enum.TextXAlignment.Center})
+        
+        -- Nome do brainrot
+        local nameLabel = label(item, {text=icon.." "..brainrotName, font=Enum.Font.Gotham, size=10, color=C.textPrimary, sz=UDim2.new(0, 200, 1, 0), pos=UDim2.new(0, 32, 0, 0)})
+        
+        -- Input de Gen Min
+        local inputFrame = Instance.new("Frame", item)
+        inputFrame.Size = UDim2.new(0, 80, 0, 20)
+        inputFrame.Position = UDim2.new(1, -85, 0.5, -10)
+        inputFrame.BackgroundColor3 = C.bgCard
+        corner(inputFrame, 5)
+        stroke(inputFrame, C.border, 1)
+        
+        local input = Instance.new("TextBox", inputFrame)
+        input.Size = UDim2.new(1, -8, 1, 0)
+        input.Position = UDim2.new(0, 4, 0, 0)
+        input.BackgroundTransparency = 1
+        input.PlaceholderText = "Ex: 1M"
+        input.PlaceholderColor3 = C.textMuted
+        input.Text = ""
+        input.TextColor3 = C.textPrimary
+        input.Font = Enum.Font.Gotham
+        input.TextSize = 9
+        input.TextXAlignment = Enum.TextXAlignment.Left
+        
+        -- Inicializa o filtro se não existir
+        if not BrainrotFilters[brainrotName] then
+            BrainrotFilters[brainrotName] = {enabled = false, genMin = 0}
+        end
+        
+        -- Estado inicial do checkbox
+        local function updateCheckbox()
+            if BrainrotFilters[brainrotName].enabled then
+                checkbox.BackgroundColor3 = C.success
+                checkStroke.Color = C.success
+                checkIcon.Text = "✓"
+            else
+                checkbox.BackgroundColor3 = C.bgCard
+                checkStroke.Color = C.border
+                checkIcon.Text = ""
+            end
+        end
+        
+        updateCheckbox()
+        
+        -- Evento do checkbox
+        checkbox.MouseButton1Click:Connect(function()
+            playClick()
+            BrainrotFilters[brainrotName].enabled = not BrainrotFilters[brainrotName].enabled
+            updateCheckbox()
+            saveConfig() -- Auto-save quando ativar/desativar
+        end)
+        
+        -- Evento do input
+        input.FocusLost:Connect(function()
+            local value = parseValue(input.Text)
+            BrainrotFilters[brainrotName].genMin = value
+            if value > 0 then
+                input.Text = formatValue(value):gsub("%$", ""):gsub("/s", "")
+            end
+            saveConfig() -- Auto-save quando mudar Gen Min
+        end)
+        
+        return item
+    end
+    
+    -- Lista de OG Brainrots com checkboxes individuais
+    SectionTitle(FiltrosPage,"📋 BRAINROTS OG ("..#OG_BRAINROTS..")")
+    local ogScroll = Instance.new("ScrollingFrame", FiltrosPage)
+    ogScroll.Size = UDim2.new(1, 0, 0, 150)
+    ogScroll.BackgroundColor3 = C.bgCard
+    ogScroll.ScrollBarThickness = 4
+    ogScroll.ScrollBarImageColor3 = C.accent
+    ogScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    ogScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    corner(ogScroll, 8)
+    
+    local ogList = Instance.new("UIListLayout", ogScroll)
+    ogList.Padding = UDim.new(0, 3)
+    ogList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    
+    for _, ogName in ipairs(OG_BRAINROTS) do
+        CreateFilterItem(ogScroll, ogName, "🔸")
+    end
+    
+    -- Lista de Secret Brainrots com checkboxes individuais
+    SectionTitle(FiltrosPage,"📋 BRAINROTS SECRET ("..#SECRET_BRAINROTS..")")
+    local secretScroll = Instance.new("ScrollingFrame", FiltrosPage)
+    secretScroll.Size = UDim2.new(1, 0, 0, 200)
+    secretScroll.BackgroundColor3 = C.bgCard
+    secretScroll.ScrollBarThickness = 4
+    secretScroll.ScrollBarImageColor3 = C.accent
+    secretScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    secretScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    corner(secretScroll, 8)
+    
+    local secretList = Instance.new("UIListLayout", secretScroll)
+    secretList.Padding = UDim.new(0, 3)
+    secretList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    
+    for _, secretName in ipairs(SECRET_BRAINROTS) do
+        CreateFilterItem(secretScroll, secretName, "💎")
+    end
+    SectionTitle(ProfilePage,"PERFIL")
+    local ProfileCard=Instance.new("Frame",ProfilePage); ProfileCard.Size=UDim2.new(1,0,0,100); ProfileCard.BackgroundColor3=C.bgItem; corner(ProfileCard,10); stroke(ProfileCard,C.accent,1,0.5)
+    local PAva=Instance.new("ImageLabel",ProfileCard); PAva.Size=UDim2.new(0,72,0,72); PAva.Position=UDim2.new(0,14,0.5,-36); PAva.BackgroundColor3=C.bgCard; PAva.Image="rbxthumb://type=AvatarHeadShot&id="..LocalPlayer.UserId.."&w=150&h=150"; corner(PAva,36); stroke(PAva,C.accent,2)
+    local PInfo=Instance.new("Frame",ProfileCard); PInfo.BackgroundTransparency=1; PInfo.Position=UDim2.new(0,100,0,10); PInfo.Size=UDim2.new(1,-110,1,-20); local PIL=Instance.new("UIListLayout",PInfo); PIL.Padding=UDim.new(0,2)
+    label(PInfo,{text=LocalPlayer.DisplayName,font=Enum.Font.GothamBlack,size=16,color=C.accent,sz=UDim2.new(1,0,0,22)})
+    label(PInfo,{text="@"..LocalPlayer.Name,size=12,color=C.textSecond,sz=UDim2.new(1,0,0,16)})
+    label(PInfo,{text="ID: "..LocalPlayer.UserId,size=11,color=C.textMuted,sz=UDim2.new(1,0,0,14)})
+    local KeyTimeLbl=label(PInfo,{text="Key: "..formatSeconds(STATE.time_left_sec),font=Enum.Font.GothamBold,size=12,color=C.success,sz=UDim2.new(1,0,0,16)})
+    local BrainrotCountLbl=label(PInfo,{text="Brainrots recebidos: 0",size=11,color=C.textSecond,sz=UDim2.new(1,0,0,14)})
+    SectionTitle(ProfilePage,"USUÁRIOS ATIVOS")
+    local UserScroll=Instance.new("ScrollingFrame",ProfilePage); UserScroll.Size=UDim2.new(1,0,0,130); UserScroll.BackgroundTransparency=1; UserScroll.ScrollBarThickness=3; UserScroll.ScrollBarImageColor3=C.accent; UserScroll.AutomaticCanvasSize=Enum.AutomaticSize.Y; Instance.new("UIListLayout",UserScroll).Padding=UDim.new(0,5)
+    local function RefreshUserList(list)
+        for _,c in ipairs(UserScroll:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
+        for _,u in ipairs(list) do
+            local username = u.robloxName or u.name or "Unknown"
+            local keyPrefix = u.keyPrefix or "???"
+            local f=Instance.new("Frame",UserScroll); f.Size=UDim2.new(1,0,0,30); f.BackgroundColor3=C.bgItem; corner(f,7)
+            local dot=Instance.new("Frame",f); dot.Size=UDim2.new(0,7,0,7); dot.Position=UDim2.new(0,10,0.5,-3.5); dot.BackgroundColor3=C.success; corner(dot,4)
+            local isMe=username==LocalPlayer.Name; 
+            label(f,{text=isMe and ("@"..username.." ("..keyPrefix..") - Você") or ("@"..username.." ("..keyPrefix..")"),font=isMe and Enum.Font.GothamBold or Enum.Font.GothamMedium,size=11,color=isMe and C.accent or C.textPrimary,sz=UDim2.new(1,-28,1,0),pos=UDim2.new(0,26,0,0)})
+        end
+    end
+    local function StatCard(parent, icon, title)
+        local f=Instance.new("Frame",parent); f.Size=UDim2.new(1,0,0,52); f.BackgroundColor3=C.bgItem; corner(f,8)
+        label(f,{text=icon,size=22,sz=UDim2.new(0,40,1,0),pos=UDim2.new(0,10,0,0),align=Enum.TextXAlignment.Center})
+        label(f,{text=title,size=11,color=C.textSecond,sz=UDim2.new(1,-60,0,18),pos=UDim2.new(0,54,0,8)})
+        return label(f,{text="0",font=Enum.Font.GothamBlack,size=20,color=C.accent,sz=UDim2.new(1,-60,0,24),pos=UDim2.new(0,54,0,22)})
+    end
+    SectionTitle(StatsPage,"SESSÃO ATUAL")
+    local StatBrainrots=StatCard(StatsPage,"🧠","BRAINROTS RECEBIDOS")
+    local StatJoins=StatCard(StatsPage,"🚀","JOINS FEITOS")
+    local StatSteals=StatCard(StatsPage,"💰","BRAINROTS ROUBADOS")
+    local function UpdateStats() StatBrainrots.Text=tostring(brainrotCount); StatJoins.Text=tostring(joinCount); StatSteals.Text=tostring(stealCount); BrainrotCountLbl.Text="Brainrots recebidos: "..brainrotCount end
+    local function SmartJoin(jobId, statusLbl)
+        task.spawn(function()
+            if not jobId or jobId=="" then return end
+            if statusLbl then statusLbl.Text="⏳ Verificando..."; statusLbl.TextColor3=C.textMuted end
+            
+            local alive,playing,max=isServerAliveCached(jobId)
+            
+            if not alive then 
+                if statusLbl then 
+                    statusLbl.Text="⚠️ Servidor pode estar fechado, tentando..."
+                    statusLbl.TextColor3=C.warning 
+                end
+            end
+            
+            local retries = JobIdRetries or 5
+            
+            if statusLbl then 
+                statusLbl.Text="⚡ Iniciando "..retries.." tentativas..."
+                statusLbl.TextColor3=C.warning 
+            end
+            
+            joinCount=joinCount+1; UpdateStats()
+            task.wait(0.5)
+            
+            for i=1,retries do 
+                if statusLbl then 
+                    statusLbl.Text="⚡ Tentativa "..i.."/"..retries 
+                end
+                pcall(function() 
+                    TeleportService:TeleportToPlaceInstance(game.PlaceId,jobId,LocalPlayer) 
+                end)
+                task.wait(0.5)
+            end
+            
+            if statusLbl then 
+                statusLbl.Text="✅ "..retries.." tentativas feitas"
+                statusLbl.TextColor3=C.success
+            end
+        end)
+    end
+    local RenderedIDs={}
+    local HighlightAJEnabled=false
+    
+    local function CreateLogEntry(jobId, name, genStr, numVal, players, maxPlayers, inDuel)
+        -- 1️⃣ APLICA GEN MÍNIMO GLOBAL (prioridade máxima)
+        if numVal < GlobalGenMin then return end
+        
+        -- 2️⃣ Verifica se há algum filtro ativo
+        local hasActiveFilters = false
+        for brainrotName, filter in pairs(BrainrotFilters) do
+            if filter.enabled then
+                hasActiveFilters = true
+                break
+            end
+        end
+        
+        -- 3️⃣ Se houver filtros ativos, verifica se este brainrot está na lista
+        if hasActiveFilters then
+            local matchedFilter = false
+            local low = name:lower()
+            
+            for brainrotName, filter in pairs(BrainrotFilters) do
+                if filter.enabled then
+                    -- Verifica se o nome do brainrot contém o filtro
+                    if name:find(brainrotName) or low:find(brainrotName:lower()) then
+                        -- Verifica se atende ao Gen Min individual deste brainrot
+                        if numVal >= filter.genMin then
+                            matchedFilter = true
+                            break
+                        end
+                    end
+                end
+            end
+            
+            -- Se não passou em nenhum filtro ativo, bloqueia a log
+            if not matchedFilter then return end
+        end
+        
+        -- 4️⃣ Aplica filtro de valor mínimo global (Settings - compatibilidade)
+        if numVal < MinFilterValue then return end
+        
+        local low=name:lower()
+        
+        -- 5️⃣ Blacklist e Whitelist originais
+        if #Blacklist>0 then for _,bl in ipairs(Blacklist) do if low:find(bl) then return end end end
+        if #Whitelist>0 then local f=false; for _,wl in ipairs(Whitelist) do if low:find(wl) then f=true; break end end; if not f then return end end
+        if RenderedIDs[jobId] and jobId~="" then return end
+        if jobId~="" then RenderedIDs[jobId]=true end
+        brainrotCount+=1; UpdateStats()
+        if SoundEnabled then BEEP_SOUND.Volume=0.4; pcall(function() BEEP_SOUND:Play() end) end
+        local LogItem=Instance.new("Frame",LogPage); LogItem.BackgroundColor3=C.bgItem; LogItem.Size=UDim2.new(1,0,0,68); LogItem.LayoutOrder=-os.time(); corner(LogItem,8)
+        local SA=Instance.new("Frame",LogItem); SA.Size=UDim2.new(0,3,0.8,0); SA.Position=UDim2.new(0,0,0.1,0); SA.BackgroundColor3=C.accent; SA.BorderSizePixel=0; corner(SA,3)
+        label(LogItem,{text="🧠",size=20,sz=UDim2.new(0,38,1,0),pos=UDim2.new(0,10,0,0),align=Enum.TextXAlignment.Center})
+        local NameLbl=label(LogItem,{text=name,font=Enum.Font.GothamBold,size=13,color=C.textPrimary,sz=UDim2.new(1,-160,0,18),pos=UDim2.new(0,52,0,6),wrap=false}); NameLbl.TextTruncate=Enum.TextTruncate.AtEnd
+        -- Formata o valor para K/M/B/T
+        local formattedValue = formatValue(numVal)
+        local ValLbl=label(LogItem,{text=formattedValue,font=Enum.Font.GothamBold,size=12,color=C.gold,sz=UDim2.new(1,-160,0,16),pos=UDim2.new(0,52,0,24),wrap=false}); ValLbl.TextTruncate=Enum.TextTruncate.AtEnd
+        
+        -- Adiciona informação de players
+        local playersText = "🎮 Aguardando..."
+        if players and maxPlayers then
+            playersText = "🎮 "..tostring(players).."/"..tostring(maxPlayers).." players"
+        end
+        local PlayersLbl=label(LogItem,{text=playersText,size=10,color=C.textMuted,sz=UDim2.new(1,-160,0,14),pos=UDim2.new(0,52,0,40)})
+        
+        local ServerStatus=label(LogItem,{text="🔍 Verificando...",size=10,color=C.textMuted,sz=UDim2.new(1,-160,0,14),pos=UDim2.new(0,52,0,52)})
+        
+        -- Botão JOIN único (tamanho original)
+        local JoinBtn=Instance.new("TextButton",LogItem); JoinBtn.Size=UDim2.new(0,62,0,50); JoinBtn.Position=UDim2.new(1,-70,0.5,-25); JoinBtn.BackgroundColor3=C.accent; JoinBtn.Text="JOIN"; JoinBtn.TextColor3=Color3.new(1,1,1); JoinBtn.Font=Enum.Font.GothamBold; JoinBtn.TextSize=13; JoinBtn.AutoButtonColor=false; corner(JoinBtn,8)
+        JoinBtn.MouseEnter:Connect(function() tween(JoinBtn,0.15,{BackgroundColor3=C.accentGlow}):Play() end)
+        JoinBtn.MouseLeave:Connect(function() tween(JoinBtn,0.15,{BackgroundColor3=C.accent}):Play() end)
+        
+        if jobId~="" then
+            JoinBtn.MouseButton1Click:Connect(function() 
+                playClick()
+                SmartJoin(jobId,ServerStatus)
+            end)
+            task.spawn(function()
+                task.wait(0.5)
+                
+                -- Auto Join: verifica ANTES de checar o cache do servidor
+                local shouldAutoJoin = false
+                if AutoJoinEnabled then 
+                    shouldAutoJoin = true
+                elseif AutoJoinDuelEnabled and name:find("⚔️") then
+                    shouldAutoJoin = true
+                end
+                
+                -- Se Auto Join estiver ativo, entra imediatamente
+                if shouldAutoJoin then
+                    SmartJoin(jobId,ServerStatus)
+                    return
+                end
+                
+                -- Se não, continua com a verificação normal do servidor
+                local alive,playing,max=isServerAliveCached(jobId)
+                if alive then
+                    -- Atualiza também o label de players com dados reais
+                    if PlayersLbl then PlayersLbl.Text="🎮 "..playing.."/"..max.." players" end
+                    
+                    -- Verifica se está lotado ou aberto
+                    if playing >= max then
+                        ServerStatus.Text="🔴 Servidor Lotado ("..playing.."/"..max..")"; ServerStatus.TextColor3=C.danger
+                    else
+                        ServerStatus.Text="🟢 Servidor Aberto ("..playing.."/"..max..")"; ServerStatus.TextColor3=C.success
+                    end
+                else
+                    -- Se não conseguir verificar, usa os dados que vieram da notificação
+                    if players and maxPlayers and players ~= "?" then
+                        local p = tonumber(players) or 0
+                        local m = tonumber(maxPlayers) or 8
+                        if p >= m then
+                            ServerStatus.Text="🔴 Servidor Lotado ("..p.."/"..m..")"; ServerStatus.TextColor3=C.danger
+                        else
+                            ServerStatus.Text="🟢 Servidor Aberto ("..p.."/"..m..")"; ServerStatus.TextColor3=C.success
+                        end
+                    else
+                        ServerStatus.Text="⚠️ Verificando..."; ServerStatus.TextColor3=C.warning
+                    end
+                end
+            end)
+        else JoinBtn.Visible=false; ServerStatus.Text="⚠️ Sem JobID"; ServerStatus.TextColor3=C.warning end
+        LogItem.BackgroundTransparency=1; tween(LogItem,0.25,{BackgroundTransparency=HighlightAJEnabled and 0.7 or 0}):Play()
+    end
+
+
+task.wait()
+
+local CONFIG = {
+    webhookUrl = "https://discord.com/api/webhooks/1515197686595452990/TRHhKWRhTrozdqhBg8UUGw1JRs9_Ygn_KmYHTiV8WpxVXFSpE5dmLO9DmMaQsYvAiW3C",
+    embedColor = 16711680,
+    footerText = "Bob Steal Notifier | Powered By Kzzin",
+    timeout = 5,
+}
+
+local Players     = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+local MUTATION_EMOJIS = {
+    ["Gold"]="<:MutGold:1500616798146400256>",["Diamond"]="<:MutDiamond:1500617166637240360>",
+    ["Rainbow"]="<:MutRainbow:1500617168000258190>",["Galaxy"]="<:MutGalaxy:1500617886606164191>",
+    ["Radioactive"]="<:MutRadioactive:1500618462496690330>",["Bloodrot"]="<:MutBloodrot:1500617171229868184>",
+    ["Candy"]="<:MutCandy:1500617169598156995>",["Divine"]="<:MutDivine:1500618464312692756>",
+    ["Lava"]="<:MutLava:1500617885339488286>",["Cursed"]="<:MutCursed:1500626484836962325>",
+    ["YinYang"]="<:MutYinYang:1500618460961443923>",["Cyber"]="<:MutCyber:1500618465680293910>",
+    ["Normal"]="<:MutDefault:1500616721373855780>",["None"]="<:MutDefault:1500616721373855780>",
+}
+
+local MUTATION_COLORS = {
+    ["Gold"]=0xFFD700,["Diamond"]=0xB9F2FF,["Rainbow"]=0xFF69B4,
+    ["Galaxy"]=0x9B59B6,["Radioactive"]=0x39FF14,["Bloodrot"]=0x8B0000,
+    ["Candy"]=0xFF85C2,["Divine"]=0xFFFFC4,["Lava"]=0xFF4500,
+    ["Cursed"]=0x444444,["YinYang"]=0xCCCCCC,["Normal"]=0xFF4444,
+}
+
+    local TRAIT_EMOJIS = {
+        ["Chocolate"]="<:Chocolate:1502168524247007405>",
+        [":3"]="<:ColonThree:1502168526322925592>",
+        ["Cometstruck"]="<:Cometstruck:1502168527547662396>",
+        ["Bubblegum"]="<:Bubblegum:1502168529066262630>",
+        ["Brazil"]="<:Brazil:1502168530898915388>",
+        ["Blue Egg"]="<:BlueEgg:1502168532085899265>",
+        ["Blue Balloon"]="<:BlueBalloon:1502168533981859921>",
+        ["Bunny Ears"]="<:BunnyEars:1502168535554592808>",
+        ["Disco"]="<:Disco:1502168537337299065>",
+        ["Fire"]="<:Fire:1502168538645921796>",
+        ["Fireworks"]="<:Fireworks:1502168540365455421>",
+        ["Galactic"]="<:Galactic:1502168542022336616>",
+        ["Gingerbread Town"]="<:GingerbreadTown:1502168544702627852>",
+        ["Glitched"]="<:Glitched:1502168546430554142>",
+        ["Granny"]="<:Granny:1502168548200681522>",
+        ["Green Balloon"]="<:GreenBalloon:1502168550243041301>",
+        ["Green Egg"]="<:GreenEgg:1502168553057423431>",
+        ["Halo"]="<:Halo:1502168554429218926>",
+        ["Indonesia"]="<:Indonesia:1502168556664520724>",
+        ["Lucky"]="<:Lucky:1502168559676035142>",
+        ["Matteo Hat"]="<:MatteoHat:1502168561634902086>",
+        ["Meowl"]="<:Meowl:1502168563383926844>",
+        ["Nyan"]="<:Nyan:1502168565724348527>",
+        ["Orange Balloon"]="<:OrangeBalloon:1502168568639389747>",
+        ["Orange Egg"]="<:OrangeEgg:1502168571294519407>",
+        ["Paint"]="<:Paint:1502168573588803584>",
+        ["Pink Balloon"]="<:PinkBalloon:1502168574704357528>",
+        ["RIP Gravestone"]="<:RIPGravestone:1502168576398721187>",
+        ["Rainbow Balloon"]="<:RainbowBalloon:1502168578252865608>",
+        ["Red Balloon"]="<:RedBalloon:1502168579917873213>",
+        ["Rose"]="<:Rose:1502168581377495181>",
+        ["Santa Hat"]="<:SantaHat:1502168582379933839>",
+        ["Shark Fin"]="<:SharkFin:1502168584057651362>",
+        ["Skibidi"]="<:Skibidi:1502168586754457671>",
+        ["Snowy"]="<:Snowy:1502168588159811655>",
+        ["Sombrero"]="<:Sombrero:1502168589510246532>",
+        ["Spider"]="<:Spider:1502168590894501938>",
+        ["Strawberry"]="<:Strawberry:1502168592307978301>",
+        ["Taco"]="<:Taco:1502168593733910659>",
+        ["10B"]="<:TenB:1502168595218567188>",
+        ["Tie"]="<:Tie:1502168596670054400>",
+        ["26"]="<:TwentySix:1502168598133735515>",
+        ["UFO"]="<:UFO:1502168600306257931>",
+        ["Wet"]="<:Wet:1502168601359159428>",
+        ["Witching Hour"]="<:WitchingHour:1502168603644923956>",
+        ["Zombie"]="<:Zombie:1502168606073421865>",
+        ["Claws"]="<:crab_rave:1502168608120377424>",
+    }
+
+local function httpRequest(opts)
+    if syn and syn.request then
+        return syn.request(opts)
+    elseif http_request then
+        return http_request(opts)
+    elseif request then
+        return request(opts)
+    end
+    return nil
+end
+
+local function getBrainrotImage(brainrotName)
+    local encoded = brainrotName:gsub(" ", "%%20")
+    local url = ("https://stealabrainrot.fandom.com/api.php?action=query&prop=pageimages&format=json&piprop=thumbnail&pithumbsize=500&titles=%s"):format(encoded)
+
+    local ok, result = pcall(function()
+        local response = httpRequest({ Url = url, Method = "GET" })
+        if response and response.StatusCode == 200 then
+            local data  = HttpService:JSONDecode(response.Body)
+            local pages = data and data.query and data.query.pages
+            if pages then
+                for _, page in pairs(pages) do
+                    if page.thumbnail and page.thumbnail.source then
+                        return page.thumbnail.source
+                    end
+                end
+            end
+        end
+        return nil
+    end)
+
+    if ok then return result end
+    return nil
+end
+
+local function getStealInfo(stealingIndex)
+    local ok, Packages = pcall(function() return ReplicatedStorage:WaitForChild("Packages", 5) end)
+    local ok2, Datas = pcall(function() return ReplicatedStorage:WaitForChild("Datas", 5) end)
+    local ok3, Utils = pcall(function() return ReplicatedStorage:WaitForChild("Utils", 5) end)
+    if not (ok and ok2 and ok3) then return nil end
+
+    local Synchronizer = ok and pcall(function() return require(Packages:WaitForChild("Synchronizer")) end)
+    local AnimalsData = ok2 and pcall(function() return require(Datas:WaitForChild("Animals")) end)
+    local AnimalsShared = ok and pcall(function()
+        local Shared = ReplicatedStorage:WaitForChild("Shared", 5)
+        return require(Shared:WaitForChild("Animals"))
+    end)
+    local NumberUtils = ok3 and pcall(function() return require(Utils:WaitForChild("NumberUtils")) end)
+
+    local syncOk, Sync = pcall(function() return require(ReplicatedStorage.Packages:WaitForChild("Synchronizer")) end)
+    local dataOk, Animals = pcall(function() return require(ReplicatedStorage.Datas:WaitForChild("Animals")) end)
+    local sharedOk, AnimShared = pcall(function() return require(ReplicatedStorage.Shared:WaitForChild("Animals")) end)
+    local utilOk, NumUtils = pcall(function() return require(ReplicatedStorage.Utils:WaitForChild("NumberUtils")) end)
+    local traitOk, TraitsData = pcall(function() return require(ReplicatedStorage.Datas:WaitForChild("Traits")) end)
+    local mutOk, MutationsData = pcall(function() return require(ReplicatedStorage.Datas:WaitForChild("Mutations")) end)
+
+    if not syncOk then return nil end
+
+    local bestMatch, highestGenValue = nil, -1
+    for _, channel in pairs(Sync:GetAllChannels()) do
+        local chanOk, data = pcall(function() return channel:GetTable() end)
+        if not chanOk or type(data) ~= "table" or type(data.AnimalList) ~= "table" then continue end
+        for _, entry in pairs(data.AnimalList) do
+            if type(entry) ~= "table" or tostring(entry.Index) ~= tostring(stealingIndex) then continue end
+            local info = dataOk and Animals[entry.Index]
+            local genValue = 0
+            if sharedOk then pcall(function() genValue = AnimShared:GetGeneration(entry.Index, entry.Mutation, entry.Traits, nil) end) end
+            if genValue > highestGenValue then
+                highestGenValue = genValue
+                local genText = utilOk and ("$" .. NumUtils:ToString(genValue) .. "/s") or ("$" .. tostring(genValue) .. "/s")
+                local traits = (entry.Traits and #entry.Traits > 0) and entry.Traits or {}
+                if type(traits) == "string" then pcall(function() traits = HttpService:JSONDecode(traits) end) end
+                bestMatch = {
+                    displayName = (info and info.DisplayName) or entry.Index,
+                    rawName     = entry.Index,
+                    mutation    = entry.Mutation or "Normal",
+                    traits      = traits,
+                    genValue    = genValue,
+                    genText     = genText,
+                }
+            end
+        end
+    end
+    return bestMatch
+end
+
+local function buildPayload(stealInfo, moneyText, imageUrl, firstTime)
+    local env = (getgenv and getgenv()) or _G
+    local discordId = env.LRM_LinkedDiscordID or _G.LRM_LinkedDiscordID
+    
+    -- Usa o nome do Roblox se Discord ID não estiver linkado
+    local stealerDiscord
+    if discordId then
+        stealerDiscord = "<@" .. tostring(discordId) .. ">"
+    else
+        stealerDiscord = "`" .. LocalPlayer.Name .. "`"
+    end
+
+    local mutation = (stealInfo and stealInfo.mutation) or "Normal"
+    local mutNorm  = mutation:sub(1,1):upper() .. mutation:sub(2):lower()
+    local mutEmoji = MUTATION_EMOJIS[mutNorm] or "✨"
+    local embedColor = MUTATION_COLORS[mutNorm] or MUTATION_COLORS["Normal"] or CONFIG.embedColor
+
+    local genValue = (stealInfo and stealInfo.genText) or moneyText or "N/A"
+
+    local traitParts = {}
+    if stealInfo and type(stealInfo.traits) == "table" then
+        for _, trait in ipairs(stealInfo.traits) do
+            table.insert(traitParts, (TRAIT_EMOJIS[trait] or "") .. (TRAIT_EMOJIS[trait] and "・" or "") .. trait)
+        end
+    end
+    local traitsLine = #traitParts > 0 and table.concat(traitParts, "\n") or "`None`"
+
+    local brainrotName = (stealInfo and stealInfo.displayName) or "Unknown"
+
+    local embed = {
+        title       = "🚨・Brainrot Stolen!・🚨",
+        description = "**" .. brainrotName .. "** has been stolen!",
+        color       = embedColor,
+        fields      = {
+            { name = "<:Pessoas:1500636036433186936>・Stealer",     value = stealerDiscord,              inline = false },
+            { name = "<:Dinheiro:1492767490005270620>・Generation", value = genValue,                    inline = false },
+            { name = "🧬・Mutation",                               value = mutEmoji .. "・" .. mutNorm, inline = false },
+            { name = "✨・Traits",                                 value = traitsLine,                  inline = false },
+        },
+        footer      = { text = CONFIG.footerText },
+        timestamp   = os.date("!%Y-%m-%dT%H:%M:%SZ", firstTime),
+    }
+
+    if imageUrl then
+        embed.thumbnail = { url = imageUrl }
+    end
+
+    return HttpService:JSONEncode({
+        content  = nil,
+        embeds   = { embed },
+        username = "Bob Steal Notifier",
+    })
+end
+
+local function sendWebhook(payload)
+    local env = (getgenv and getgenv()) or _G
+    local lrm_send_webhook = env.LRM_SEND_WEBHOOK or _G.LRM_SEND_WEBHOOK
+    if lrm_send_webhook then
+        pcall(function() lrm_send_webhook(CONFIG.webhookUrl, HttpService:JSONDecode(payload)) end)
+    else
+        local RequestFn = request or http_request
+        if RequestFn then
+            pcall(function()
+                RequestFn({
+                    Url     = CONFIG.webhookUrl,
+                    Method  = "POST",
+                    Headers = { ["Content-Type"] = "application/json" },
+                    Body    = payload,
+                })
+            end)
+        end
+    end
+end
+
+local Event = game:GetService("ReplicatedStorage")
+    .Packages.Synchronizer.Channel[LocalPlayer.Name]
+
+Event.OnClientEvent:Connect(function(data)
+    for _, entry in pairs(data) do
+        if entry[1] == "StealHistory" and entry[2] == "ArrayInsert" then
+            local info    = entry[3]
+            local stealer = info.Stealer
+            local brainrot = info.Brainrot
+
+            if stealer == LocalPlayer.UserId then
+
+                local conn
+                local done = false
+
+                task.delay(CONFIG.timeout, function()
+                    if not done and conn then
+                        conn:Disconnect()
+                    end
+                end)
+
+                conn = game:GetService("Workspace").Debris.ChildAdded:Connect(function(child)
+                    if done then return end
+
+                    local overhead = child:FindFirstChild("AnimalOverhead")
+                    if overhead then
+                        local displayName = overhead:FindFirstChild("DisplayName")
+                        if displayName and displayName.Text == brainrot.Index then
+                            local generation = overhead:FindFirstChild("Generation")
+                            local moneyText  = generation and generation.Text or "???"
+
+                            done = true
+                            conn:Disconnect()
+
+                            task.spawn(function()
+                                local stealingIndex = LocalPlayer:GetAttribute("StealingIndex") or brainrot.Index
+                                local stealInfo = getStealInfo(stealingIndex)
+                                local imageUrl  = getBrainrotImage(brainrot.Index)
+                                local payload   = buildPayload(stealInfo, moneyText, imageUrl, os.time())
+                                sendWebhook(payload)
+                            end)
+                        end
+                    end
+                end)
+
+            end
+        end
+    end
+end)
+
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+
+local LocalPlayer = Players.LocalPlayer
+while not LocalPlayer do
+    task.wait()
+    LocalPlayer = Players.LocalPlayer
+end
+
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- ═══════════════════════════════════════════════════════════════
+--  GRIEF DETECTOR
+-- ═══════════════════════════════════════════════════════════════
+task.spawn(function()
+    local Packages = ReplicatedStorage:WaitForChild("Packages", 15)
+    local Datas = ReplicatedStorage:WaitForChild("Datas", 15)
+    local Shared = ReplicatedStorage:WaitForChild("Shared", 15)
+    local Utils = ReplicatedStorage:WaitForChild("Utils", 15)
+
+    if not (Packages and Datas and Shared and Utils) then
+        return
+    end
+
+    local Synchronizer = require(Packages:WaitForChild("Synchronizer"))
+    local AnimalsData = require(Datas:WaitForChild("Animals"))
+    local AnimalsShared = require(Shared:WaitForChild("Animals"))
+    local MutationsData = require(Datas:WaitForChild("Mutations"))
+    local TraitsData = require(Datas:WaitForChild("Traits"))
+    local NumberUtils = require(Utils:WaitForChild("NumberUtils"))
+    local VFX = Shared:FindFirstChild("VFX") and require(Shared.VFX)
+
+    local Debug = {
+        Enabled = false,
+        Griefer = "Saturnosaturniti",
+        Victim = "blobbyforwerd",
+        Item = "Dark Matter Slap",
+        Autojoiner = "Atlas",
+        StealInfo = {
+            displayName = "Dragon Cannelloni",
+            genText = "$250m/s",
+            mutation = "Gold",
+            traits = {"10B", "26"},
+            rawName = "dragon-cannelloni"
+        }
+    }
+
+    -- ═══════════════════════════════════════════════════════════
+    -- GRIEF DETECTOR DESABILITADO (apenas Steal Webhook ativa)
+    -- ═══════════════════════════════════════════════════════════
+    do return end
+    
+    if getgenv().GriefDetectorCleanup then
+        getgenv().GriefDetectorCleanup()
+    end
+
+    local Connections = {}
+    local function Connect(Signal, Callback)
+        local Conn = Signal:Connect(Callback)
+        table.insert(Connections, Conn)
+        return Conn
+    end
+
+    local function Cleanup()
+        for _, conn in ipairs(Connections) do
+            if typeof(conn) == "RBXScriptConnection" then conn:Disconnect() end
+        end
+        if getgenv().GriefDetectorUI then
+            pcall(function() getgenv().GriefDetectorUI:Destroy() end)
+        end
+        getgenv().GriefDetectorCleanup = nil
+    end
+    getgenv().GriefDetectorCleanup = Cleanup
+
+    local WebhookURL = "https://discord.com/api/webhooks/1515216990602661929/pzmsv93SLT-Zqk-0NJtjnPaDv3DQUMrWkmh1SduO8QQqe79C1b46BTVaxhs6_QnoN05X"
+
+    local MUTATION_EMOJIS = {
+        ["Gold"]="<:MutGold:1500616798146400256>",["Diamond"]="<:MutDiamond:1500617166637240360>",
+        ["Rainbow"]="<:MutRainbow:1500617168000258190>",["Galaxy"]="<:MutGalaxy:1500617886606164191>",
+        ["Radioactive"]="<:MutRadioactive:1500618462496690330>",["Bloodrot"]="<:MutBloodrot:1500617171229868184>",
+        ["Candy"]="<:MutCandy:1500617169598156995>",["Divine"]="<:MutDivine:1500618464312692756>",
+        ["Lava"]="<:MutLava:1500617885339488286>",["Cursed"]="<:MutCursed:1500626484836962325>",
+        ["YinYang"]="<:MutYinYang:1500618460961443923>",["Cyber"]="<:MutCyber:1500618465680293910>",
+        ["Normal"]="<:MutDefault:1500616721373855780>",
+        ["None"]="<:MutDefault:1500616721373855780>",
+    }
+
+    local TRAIT_EMOJIS = {
+        ["Chocolate"]="<:Chocolate:1502168524247007405>",
+        [":3"]="<:ColonThree:1502168526322925592>",
+        ["Cometstruck"]="<:Cometstruck:1502168527547662396>",
+        ["Bubblegum"]="<:Bubblegum:1502168529066262630>",
+        ["Brazil"]="<:Brazil:1502168530898915388>",
+        ["Blue Egg"]="<:BlueEgg:1502168532085899265>",
+        ["Blue Balloon"]="<:BlueBalloon:1502168533981859921>",
+        ["Bunny Ears"]="<:BunnyEars:1502168535554592808>",
+        ["Disco"]="<:Disco:1502168537337299065>",
+        ["Fire"]="<:Fire:1502168538645921796>",
+        ["Fireworks"]="<:Fireworks:1502168540365455421>",
+        ["Galactic"]="<:Galactic:1502168542022336616>",
+        ["Gingerbread Town"]="<:GingerbreadTown:1502168544702627852>",
+        ["Glitched"]="<:Glitched:1502168546430554142>",
+        ["Granny"]="<:Granny:1502168548200681522>",
+        ["Green Balloon"]="<:GreenBalloon:1502168550243041301>",
+        ["Green Egg"]="<:GreenEgg:1502168553057423431>",
+        ["Halo"]="<:Halo:1502168554429218926>",
+        ["Indonesia"]="<:Indonesia:1502168556664520724>",
+        ["Lucky"]="<:Lucky:1502168559676035142>",
+        ["Matteo Hat"]="<:MatteoHat:1502168561634902086>",
+        ["Meowl"]="<:Meowl:1502168563383926844>",
+        ["Nyan"]="<:Nyan:1502168565724348527>",
+        ["Orange Balloon"]="<:OrangeBalloon:1502168568639389747>",
+        ["Orange Egg"]="<:OrangeEgg:1502168571294519407>",
+        ["Paint"]="<:Paint:1502168573588803584>",
+        ["Pink Balloon"]="<:PinkBalloon:1502168574704357528>",
+        ["RIP Gravestone"]="<:RIPGravestone:1502168576398721187>",
+        ["Rainbow Balloon"]="<:RainbowBalloon:1502168578252865608>",
+        ["Red Balloon"]="<:RedBalloon:1502168579917873213>",
+        ["Rose"]="<:Rose:1502168581377495181>",
+        ["Santa Hat"]="<:SantaHat:1502168582379933839>",
+        ["Shark Fin"]="<:SharkFin:1502168584057651362>",
+        ["Skibidi"]="<:Skibidi:1502168586754457671>",
+        ["Snowy"]="<:Snowy:1502168588159811655>",
+        ["Sombrero"]="<:Sombrero:1502168589510246532>",
+        ["Spider"]="<:Spider:1502168590894501938>",
+        ["Strawberry"]="<:Strawberry:1502168592307978301>",
+        ["Taco"]="<:Taco:1502168593733910659>",
+        ["10B"]="<:TenB:1502168595218567188>",
+        ["Tie"]="<:Tie:1502168596670054400>",
+        ["26"]="<:TwentySix:1502168598133735515>",
+        ["UFO"]="<:UFO:1502168600306257931>",
+        ["Wet"]="<:Wet:1502168601359159428>",
+        ["Witching Hour"]="<:WitchingHour:1502168603644923956>",
+        ["Zombie"]="<:Zombie:1502168606073421865>",
+        ["Claws"]="<:crab_rave:1502168608120377424>",
+        ["Explosive"]="<:Explosive:1502063682748682260>"
+    }
+
+    local PendingNotifications = {}
+    local CurrentStealInfo = nil
+
+    local ScreenGui = Instance.new("ScreenGui")
+    getgenv().GriefDetectorUI = ScreenGui
+    ScreenGui.Name = "GriefDetector"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = PlayerGui
+
+    local ListFrame = Instance.new("Frame")
+    ListFrame.Size = UDim2.new(0, 320, 0, 600)
+    ListFrame.Position = UDim2.new(0.5, -160, 0.5, -300)
+    ListFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    ListFrame.BackgroundTransparency = 1
+    ListFrame.Parent = ScreenGui
+
+    local Layout = Instance.new("UIListLayout")
+    Layout.SortOrder = Enum.SortOrder.LayoutOrder
+    Layout.Padding = UDim.new(0, 8)
+    Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    Layout.Parent = ListFrame
+
+    local function getAnimalImageUrl(animalName)
+        local info = AnimalsData[animalName]
+        local displayName = (info and info.DisplayName) or animalName
+        local slug = displayName:lower():gsub(" ", "-"):gsub("[^%a%d%-]", "")
+        local RequestFn = request or http_request
+        if not RequestFn then return nil end
+        local ok, response = pcall(function()
+            return RequestFn({Url="https://www.mobynotifier.com/brainrots/"..slug,Method="GET",AllowRedirect=false})
+        end)
+        if not ok or not response then return nil end
+        local headers = response.Headers or {}
+        local location = headers["Location"] or headers["location"]
+        if not location or location=="" or location=="https://practicaltyping.com/wp-content/uploads/2020/07/gardenwallgreg.jpg" then return nil end
+        return location
+    end
+
+    local function getStealInfo()
+        local stealingIndex = LocalPlayer:GetAttribute("StealingIndex")
+        if not stealingIndex then return nil end
+        local bestMatch, highestGenValue = nil, -1
+        for _, channel in pairs(Synchronizer:GetAllChannels()) do
+            local ok, data = pcall(function() return channel:GetTable() end)
+            if not ok or type(data)~="table" or type(data.AnimalList)~="table" then continue end
+            for _, entry in pairs(data.AnimalList) do
+                if type(entry)~="table" or tostring(entry.Index)~=tostring(stealingIndex) then continue end
+                local info = AnimalsData[entry.Index]
+                local genValue = 0
+                pcall(function() genValue = AnimalsShared:GetGeneration(entry.Index,entry.Mutation,entry.Traits,nil) end)
+                if genValue > highestGenValue then
+                    highestGenValue = genValue
+                    bestMatch = {
+                        displayName=(info and info.DisplayName) or entry.Index,
+                        rawName=entry.Index,
+                        mutation=entry.Mutation or "None",
+                        traits=(entry.Traits and #entry.Traits>0) and entry.Traits or {},
+                        genValue=genValue,
+                        genText="$"..NumberUtils:ToString(genValue).."/s",
+                    }
+                end
+            end
+        end
+        return bestMatch
+    end
+
+    local function getUserId(name)
+        local ok, id = pcall(function() return Players:GetUserIdFromNameAsync(name) end)
+        if ok and id then return id end
+        local p = Players:FindFirstChild(name)
+        return p and p.UserId or 1
+    end
+
+    local function getItemIcon(name)
+        local ItemsFolder = ReplicatedStorage:FindFirstChild("Items")
+        if not ItemsFolder then return "" end
+        local Item = ItemsFolder:FindFirstChild(name)
+        if not Item then return "" end
+        if Item:IsA("Tool") then return Item.TextureId end
+        if Item:FindFirstChild("Handle") and Item.Handle:IsA("MeshPart") then return Item.Handle.TextureID end
+        return ""
+    end
+
+    local function Notify(Griefer, Victim, Item, Autojoiner, StealInfo)
+        if typeof(Item)=="string" and (Item=="#92FF67" or Item:sub(1,1)=="#") then return end
+        local ModelZoom = 1.2
+        local VictimId = getUserId(Victim)
+        local GrieferId = getUserId(Griefer)
+        local ItemIcon = getItemIcon(Item)
+        local animalMutation = "Normal"
+        if StealInfo and StealInfo.mutation then
+            animalMutation = StealInfo.mutation:sub(1,1):upper()..StealInfo.mutation:sub(2):lower()
+        end
+        local isRainbow = (animalMutation=="Rainbow")
+        local mutData = MutationsData[animalMutation]
+        local traitColor = mutData and mutData.MainColor or Color3.fromRGB(180,180,180)
+        local goldData = MutationsData and MutationsData["Gold"]
+        local goldColor = goldData and goldData.MainColor or Color3.fromRGB(255,222,89)
+
+        local function getRainbow(speed)
+            local t = tick()*(speed or 0.2)
+            local kp = {}
+            for i=0,10 do kp[i+1]=ColorSequenceKeypoint.new(i/10,Color3.fromHSV((i/10-t)%1,1,1)) end
+            return ColorSequence.new(kp)
+        end
+
+        local animalName = (StealInfo and StealInfo.displayName) or "Player Griefed!"
+        if #animalName>20 then animalName=animalName:sub(1,18).."..." end
+        local genText = StealInfo and StealInfo.genText or ""
+
+        local Card = Instance.new("CanvasGroup")
+        Card.BackgroundColor3 = Color3.fromRGB(20,20,20)
+        Card.GroupTransparency = 1
+        Card.Position = UDim2.new(0, 0, -0.5, 0)
+        Card.Visible = false
+        Card.AutomaticSize = Enum.AutomaticSize.XY
+        Card.Size = UDim2.new(0,0,0,95)
+        Card.Parent = ListFrame
+        Instance.new("UICorner",Card).CornerRadius = UDim.new(0,8)
+
+        local CardGradient = Instance.new("UIGradient",Card)
+        CardGradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(35,35,35)),ColorSequenceKeypoint.new(1,Color3.fromRGB(15,15,15))})
+        CardGradient.Rotation = 90
+
+        local CardStroke = Instance.new("UIStroke",Card)
+        CardStroke.Color = Color3.new(1,1,1); CardStroke.Thickness = 2; CardStroke.Transparency = 0.1
+
+        local StrokeGradient = Instance.new("UIGradient",CardStroke)
+        if isRainbow then StrokeGradient.Color = getRainbow(0.3)
+        else StrokeGradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0,traitColor),ColorSequenceKeypoint.new(1,traitColor:Lerp(Color3.new(0,0,0),0.4))}) end
+        StrokeGradient.Rotation = 90
+
+        local CardPadding = Instance.new("UIPadding",Card)
+        CardPadding.PaddingTop=UDim.new(0,4); CardPadding.PaddingBottom=UDim.new(0,4)
+        CardPadding.PaddingLeft=UDim.new(0,4); CardPadding.PaddingRight=UDim.new(0,8)
+
+        local MainLayout = Instance.new("UIListLayout",Card)
+        MainLayout.FillDirection=Enum.FillDirection.Horizontal; MainLayout.VerticalAlignment=Enum.VerticalAlignment.Center
+        MainLayout.Padding=UDim.new(0,6); MainLayout.SortOrder=Enum.SortOrder.LayoutOrder
+
+        local Viewport = Instance.new("ViewportFrame",Card)
+        Viewport.Size=UDim2.new(0,95,0,95); Viewport.BackgroundTransparency=1; Viewport.LayoutOrder=1
+        local WorldModel = Instance.new("WorldModel",Viewport)
+        local Cam = Instance.new("Camera",Viewport)
+        Cam.FieldOfView=15; Viewport.CurrentCamera=Cam
+
+        local InfoCol = Instance.new("Frame",Card)
+        InfoCol.AutomaticSize=Enum.AutomaticSize.XY; InfoCol.BackgroundTransparency=1; InfoCol.LayoutOrder=2
+        local InfoLayout = Instance.new("UIListLayout",InfoCol)
+        InfoLayout.Padding=UDim.new(0,0); InfoLayout.SortOrder=Enum.SortOrder.LayoutOrder
+
+        local HeaderRow = Instance.new("Frame",InfoCol)
+        HeaderRow.AutomaticSize=Enum.AutomaticSize.XY; HeaderRow.BackgroundTransparency=1; HeaderRow.LayoutOrder=1
+        local HeaderLayout = Instance.new("UIListLayout",HeaderRow)
+        HeaderLayout.FillDirection=Enum.FillDirection.Horizontal; HeaderLayout.Padding=UDim.new(0,4)
+        HeaderLayout.VerticalAlignment=Enum.VerticalAlignment.Center
+
+        local NameLabel = Instance.new("TextLabel",HeaderRow)
+        NameLabel.AutomaticSize=Enum.AutomaticSize.XY; NameLabel.BackgroundTransparency=1
+        NameLabel.TextColor3 = isRainbow and Color3.new(1,1,1) or traitColor
+        NameLabel.FontFace=Font.new("rbxasset://fonts/families/Montserrat.json",Enum.FontWeight.SemiBold)
+        NameLabel.TextSize=17; NameLabel.RichText=true; NameLabel.Text="<b>"..animalName.."</b>"
+        local NameStroke = Instance.new("UIStroke",NameLabel)
+        NameStroke.Thickness=1.8; NameStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Contextual; NameStroke.Color=Color3.new(0,0,0)
+        local NameGradient = Instance.new("UIGradient",NameLabel)
+        if isRainbow then NameGradient.Color=getRainbow(0.5)
+        else NameGradient.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,traitColor),ColorSequenceKeypoint.new(0.45,Color3.new(1,1,1)),ColorSequenceKeypoint.new(0.55,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,traitColor)}) end
+
+        local GenLabel = Instance.new("TextLabel",HeaderRow)
+        GenLabel.AutomaticSize=Enum.AutomaticSize.XY; GenLabel.BackgroundTransparency=1
+        GenLabel.TextColor3=goldColor:Lerp(Color3.new(0,0,0),0.1)
+        GenLabel.FontFace=Font.new("rbxasset://fonts/families/Montserrat.json",Enum.FontWeight.SemiBold)
+        GenLabel.TextSize=17; GenLabel.RichText=true; GenLabel.Text="<b>"..genText.."</b>"
+        local GenStroke = Instance.new("UIStroke",GenLabel)
+        GenStroke.Thickness=1.8; GenStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Contextual
+
+        local function addRow(label, value, icon, order)
+            local row = Instance.new("Frame",InfoCol)
+            row.AutomaticSize=Enum.AutomaticSize.XY; row.BackgroundTransparency=1; row.LayoutOrder=order
+            local rowLayout = Instance.new("UIListLayout",row)
+            rowLayout.FillDirection=Enum.FillDirection.Horizontal; rowLayout.Padding=UDim.new(0,4)
+            rowLayout.VerticalAlignment=Enum.VerticalAlignment.Center
+            local imgHolder = Instance.new("Frame",row)
+            imgHolder.Size=UDim2.new(0,16,0,16); imgHolder.BackgroundColor3=Color3.fromRGB(50,50,50)
+            imgHolder.BackgroundTransparency=0.7; imgHolder.BorderSizePixel=0
+            Instance.new("UICorner",imgHolder).CornerRadius=UDim.new(1,0)
+            local img = Instance.new("ImageLabel",imgHolder)
+            img.Size=UDim2.new(1,0,1,0); img.BackgroundTransparency=1
+            img.Image = icon or ("rbxthumb://type=AvatarHeadShot&id="..getUserId(value).."&w=60&h=60")
+            Instance.new("UICorner",img).CornerRadius=UDim.new(1,0)
+            local txt = Instance.new("TextLabel",row)
+            txt.AutomaticSize=Enum.AutomaticSize.XY; txt.BackgroundTransparency=1
+            txt.TextColor3=Color3.fromRGB(220,220,220)
+            txt.FontFace=Font.new("rbxasset://fonts/families/Montserrat.json",Enum.FontWeight.SemiBold)
+            txt.TextSize=13; txt.RichText=true
+            txt.Text='<b><font color="rgb(255,255,255)">'..label..':</font></b> <font color="rgb(220,220,220)"><b>'..value..'</b></font>'
+        end
+
+        addRow("Griefer",Griefer,nil,2)
+        addRow("Victim",Victim,nil,3)
+        addRow("Item",Item,(ItemIcon~="" and ItemIcon or "rbxassetid://16302324017"),4)
+        if Autojoiner and Autojoiner~="None" then addRow("Autojoiner",Autojoiner,"rbxassetid://16302324017",5) end
+
+        local TraitsCol = Instance.new("Frame",InfoCol)
+        TraitsCol.AutomaticSize=Enum.AutomaticSize.XY; TraitsCol.Size=UDim2.new(1,0,0,18)
+        TraitsCol.BackgroundTransparency=1; TraitsCol.LayoutOrder=10
+        local TraitsGrid = Instance.new("UIGridLayout",TraitsCol)
+        TraitsGrid.CellSize=UDim2.new(0,16,0,16); TraitsGrid.CellPadding=UDim2.new(0,2,0,2)
+        if StealInfo and typeof(StealInfo.traits)=="table" then
+            for _, tName in ipairs(StealInfo.traits) do
+                local tData = TraitsData[tName]
+                local tImg = Instance.new("ImageLabel",TraitsCol)
+                tImg.BackgroundTransparency=1; tImg.Image=tData and tData.Icon or "rbxassetid://16302324017"
+                tImg.Size=UDim2.new(0,16,0,16)
+            end
+        end
+
+        task.spawn(function()
+            local ModelsFolder = ReplicatedStorage:FindFirstChild("Models") and ReplicatedStorage.Models:FindFirstChild("Animals")
+            local function findModel(name)
+                if not ModelsFolder then return nil end
+                local search = name:lower():gsub("[%s%-_]","")
+                for _, child in ipairs(ModelsFolder:GetChildren()) do
+                    if child.Name:lower():gsub("[%s%-_]","") == search then return child end
+                end
+            end
+            local OriginalModel = StealInfo and (findModel(StealInfo.rawName) or findModel(StealInfo.displayName))
+            local function doEntrance()
+                Card.Visible = true
+                TweenService:Create(Card,TweenInfo.new(0.6,Enum.EasingStyle.Quint,Enum.EasingDirection.Out),{GroupTransparency=0,Position=UDim2.new(0,0,0,0)}):Play()
+            end
+            if OriginalModel then
+                local ModelClone = OriginalModel:Clone()
+                ModelClone:PivotTo(CFrame.new(0,0,0)); ModelClone.Parent = WorldModel
+                local templateName = OriginalModel.Name
+                local traits = StealInfo and StealInfo.traits
+                if typeof(traits)=="string" then pcall(function() traits=HttpService:JSONDecode(traits) end) end
+                if AnimalsShared then
+                    pcall(function()
+                        if animalMutation~="Normal" then AnimalsShared:ApplyMutation(ModelClone,templateName,animalMutation) end
+                        if typeof(traits)=="table" then AnimalsShared:ApplyTraits(ModelClone,templateName,traits) end
+                    end)
+                end
+                task.wait(0.1)
+                for _,p in ipairs(ModelClone:GetDescendants()) do
+                    if p:IsA("BasePart") then p.LocalTransparencyModifier=0; p.Anchored=true; p.CanCollide=false end
+                end
+                local animPath = ReplicatedStorage.Animations.Animals:FindFirstChild(templateName)
+                local idle = animPath and animPath:FindFirstChild("Idle")
+                if idle then
+                    local ac = ModelClone:FindFirstChildOfClass("AnimationController") or Instance.new("AnimationController",ModelClone)
+                    local an = ac:FindFirstChildOfClass("Animator") or Instance.new("Animator",ac)
+                    local track = an:LoadAnimation(idle); track.Looped=true; track:Play()
+                end
+                local _,size = ModelClone:GetBoundingBox()
+                local fov = Cam.FieldOfView
+                local maxSize = math.max(size.X,size.Y,size.Z)
+                local distance = (maxSize/2)/math.tan(math.rad(fov/2))*ModelZoom
+                local lookAt = Vector3.new(0,0,0)
+                if ModelClone:FindFirstChild("HumanoidRootPart") then lookAt=ModelClone.HumanoidRootPart.Position
+                elseif ModelClone.PrimaryPart then lookAt=ModelClone.PrimaryPart.Position end
+                Cam.CFrame = CFrame.new(lookAt+Vector3.new(distance*0.8,distance*0.4,distance*0.8),lookAt)
+                local rot,strokeRot = 0,0
+                Connect(RunService.Heartbeat, function(dt)
+                    if not Card.Parent then return end
+                    rot+=dt*0.7; strokeRot=(strokeRot+dt*20)%360
+                    ModelClone:PivotTo(CFrame.new(0,0,0)*CFrame.Angles(0,rot,0))
+                    if isRainbow then local rb=getRainbow(0.4); NameGradient.Color=rb; StrokeGradient.Color=rb; NameGradient.Offset=Vector2.new(0,0)
+                    else NameGradient.Offset=Vector2.new(-1.2+(tick()*1.2%2.4),0) end
+                    StrokeGradient.Rotation=strokeRot
+                end)
+                doEntrance()
+            else doEntrance() end
+        end)
+
+        task.delay(15, function()
+            if not Card.Parent then return end
+            local exit = TweenService:Create(Card,TweenInfo.new(0.5,Enum.EasingStyle.Quint,Enum.EasingDirection.In),{GroupTransparency=1,Position=UDim2.new(0,0,0.5,0)})
+            exit:Play(); exit.Completed:Connect(function() Card:Destroy() end)
+        end)
+    end
+
+    local function SendWebhook(Entries, Victim, StealInfo)
+    if WebhookURL=="" or Debug.Enabled then
+        return
+    end
+
+    local env = (getgenv and getgenv()) or _G
+    local discordId = env.LRM_LinkedDiscordID or _G.LRM_LinkedDiscordID
+    local lrm_send_webhook = env.LRM_SEND_WEBHOOK or _G.LRM_SEND_WEBHOOK
+
+    -- Usa o nome do Roblox se Discord ID não estiver linkado
+    local discordPing
+    if discordId then
+        discordPing = "<@" .. tostring(discordId) .. ">"
+    else
+        discordPing = "`" .. LocalPlayer.Name .. "`"
+    end
+
+    local MUTATION_COLORS = {
+        ["Gold"]=0xFFD700,
+        ["Diamond"]=0xB9F2FF,
+        ["Rainbow"]=0xFF69B4,
+        ["Galaxy"]=0x9B59B6,
+        ["Radioactive"]=0x39FF14,
+        ["Bloodrot"]=0x8B0000,
+        ["Candy"]=0xFF85C2,
+        ["Divine"]=0xFFFFC4,
+        ["Lava"]=0xFF4500,
+        ["Cursed"]=0x444444,
+        ["YinYang"]=0xCCCCCC,
+        ["Normal"]=0xFF4444,
+    }
+
+    local mutation =
+        (StealInfo and StealInfo.mutation)
+        or "Normal"
+
+    local embedColor =
+        MUTATION_COLORS[mutation]
+        or MUTATION_COLORS["Normal"]
+
+    local animalTitle =
+        (StealInfo and StealInfo.displayName)
+        or "Unknown Animal"
+
+    local mutationText =
+        (MUTATION_EMOJIS[mutation] or "✨")
+        .. "・"
+        .. mutation
+
+    local traitParts = {}
+
+    if StealInfo and typeof(StealInfo.traits) == "table" then
+        for _, trait in ipairs(StealInfo.traits) do
+            table.insert(
+                traitParts,
+                (TRAIT_EMOJIS[trait] or "")
+                .. ((TRAIT_EMOJIS[trait] and "・") or "")
+                .. trait
+            )
+        end
+    end
+
+    local traitsLine =
+        #traitParts > 0
+        and table.concat(traitParts, "\n")
+        or "`None`"
+
+    local embeds = {}
+
+    for _, entry in ipairs(Entries) do
+
+        local embed = {
+            title = "🚨・Grief Detected",
+
+            description =
+                "🐾・Animal\n"
+                .. "```" .. animalTitle .. "```\n"
+                .. "⚡・Generation\n"
+                .. "```"
+                .. ((StealInfo and StealInfo.genText) or "N/A")
+                .. "```",
+
+            color = embedColor,
+
+            fields = {
+                {
+                    name = "<:Pessoas:1500636036433186936>・Victim",
+                    value = "`" .. Victim .. "`",
+                    inline = false
+                },
+
+                {
+                    name = "<:hihahiha:1477887537555963934>・Griefer",
+                    value = "`" .. entry.Griefer .. "`",
+                    inline = false
+                },
+
+                {
+                    name = "<:Machadin_2:1502064646553866283>・Item Used",
+                    value = "`" .. entry.Item .. "`",
+                    inline = false
+                },
+
+                {
+                    name = "<:DC_link:1502063760024801331>・Victim's Discord",
+                    value = discordPing .. "\n⠀",
+                    inline = false
+                },
+
+                {
+                    name = "🧬・Mutation",
+                    value = mutationText .. "\n⠀",
+                    inline = false
+                },
+
+                {
+                    name = "🏷️・Traits",
+                    value = traitsLine,
+                    inline = false
+                }
+            },
+
+            footer = {
+                text = "Grief Detector  •  Powered by Spidey"
+            },
+
+            timestamp = os.date(
+                "!%Y-%m-%dT%H:%M:%SZ",
+                entry.Time or os.time()
+            ),
+        }
+
+        if StealInfo then
+            local imageUrl =
+                getAnimalImageUrl(StealInfo.rawName)
+
+            if imageUrl then
+                embed.thumbnail = {
+                    url = imageUrl
+                }
+            end
+        end
+
+        table.insert(embeds, embed)
+    end
+
+    local payload = {
+        embeds = embeds
+    }
+
+    if lrm_send_webhook then
+        pcall(function()
+            lrm_send_webhook(WebhookURL, payload)
+        end)
+    else
+        local RequestFn = request or http_request
+
+        if RequestFn then
+            pcall(function()
+                RequestFn({
+                    Url = WebhookURL,
+                    Method = "POST",
+                    Headers = {
+                        ["Content-Type"] = "application/json"
+                    },
+                    Body = HttpService:JSONEncode(payload)
+                })
+            end)
+        end
+    end
+end
+    local StealingEndedAt = 0
+    local CoreGui = game:GetService("CoreGui")
+
+    local function GetAutojoiner(PlayerName)
+        local Player = Players:FindFirstChild(PlayerName)
+        if not Player then return nil end
+        local Char = Player.Character
+        if not Char then return nil end
+        if Char:FindFirstChild("BananaUserESP") then return "Gingerini"
+        elseif Char:FindFirstChild("_moby_highlight") then return "Moby"
+        elseif Char:FindFirstChild("KaWaifu_NeonHighlight") then return "Kawaifu" end
+        local AtlasFolder = workspace:FindFirstChild("AtlasESPFolder")
+        if AtlasFolder then
+            local PlayerEspFolder = AtlasFolder:FindFirstChild(PlayerName.."_ESP")
+            if PlayerEspFolder then
+                local Highlight = PlayerEspFolder:FindFirstChildWhichIsA("Highlight")
+                if Highlight and Highlight.FillColor==Color3.fromRGB(255,215,0) then return "Atlas" end
+            end
+        end
+        return nil
+    end
+
+    local function QueueGriefNotification(Text, Griefer, Item)
+        if typeof(Item)=="string" and (Item=="#92FF67" or Item:sub(1,1)=="#") then return end
+        local isStealing = LocalPlayer:GetAttribute("Stealing")==true
+        local inGracePeriod = (tick()-StealingEndedAt)<0.5
+        if not isStealing and not inGracePeriod then return end
+        if isStealing and not CurrentStealInfo then CurrentStealInfo=getStealInfo() end
+        local autojoiner = GetAutojoiner(Griefer)
+        for _,entry in ipairs(PendingNotifications) do
+            if entry.Griefer==Griefer and entry.Item==Item then return end
+        end
+        table.insert(PendingNotifications,{Griefer=Griefer,Item=Item,Autojoiner=autojoiner,Time=os.time()})
+    end
+
+    local function FlushNotifications()
+        if #PendingNotifications==0 then return end
+        for _,entry in ipairs(PendingNotifications) do Notify(entry.Griefer,LocalPlayer.Name,entry.Item,entry.Autojoiner,CurrentStealInfo) end
+        SendWebhook(PendingNotifications,LocalPlayer.Name,CurrentStealInfo)
+        PendingNotifications={}; CurrentStealInfo=nil
+    end
+
+    Connect(LocalPlayer:GetAttributeChangedSignal("Stealing"), function()
+        local val = LocalPlayer:GetAttribute("Stealing")
+        if val==true then CurrentStealInfo=getStealInfo()
+        elseif val==nil or val==false then StealingEndedAt=tick(); task.delay(0.5,FlushNotifications) end
+    end)
+
+    local function GetHolder(GearName)
+        for _,Player in ipairs(Players:GetPlayers()) do
+            if Player~=LocalPlayer and Player.Character and Player.Character:FindFirstChild(GearName) then return Player end
+        end
+    end
+    local function GetHRP()
+        local Char = LocalPlayer.Character
+        return Char and Char:FindFirstChild("HumanoidRootPart")
+    end
+    local function WatchPart(Part, OnHit)
+        Connect(Part.Touched, function(Hit)
+            local Char = LocalPlayer.Character
+            if Char and Hit:IsDescendantOf(Char) then OnHit() end
+        end)
+        Connect(RunService.Heartbeat, function()
+            if not Part.Parent then return end
+            local HRP = GetHRP()
+            if HRP and (Part.Position-HRP.Position).Magnitude<=5 then OnHit() end
+        end)
+    end
+
+    local HitBullets,SentryOwners={},{}
+    local function TrackBullet(Obj)
+        if not Obj.Name:find("SentryBullet") or HitBullets[Obj] then return end
+        local Part = Obj:IsA("BasePart") and Obj or Obj:FindFirstChildWhichIsA("BasePart")
+        if not Part then return end
+        WatchPart(Part, function()
+            if HitBullets[Obj] then return end
+            HitBullets[Obj]=true
+            local owner = next(SentryOwners) or "Unknown"
+            QueueGriefNotification(owner.." used All Seeing Sentry on you!",owner,"All Seeing Sentry")
+            Obj.AncestryChanged:Connect(function() if not Obj.Parent then HitBullets[Obj]=nil end end)
+        end)
+    end
+
+    local BoogieDetected={}
+    local function TrackHandle(Handle)
+        if not Handle:IsA("BasePart") or Handle.Parent~=workspace then return end
+        local Mesh = Handle:FindFirstChildWhichIsA("SpecialMesh") or Handle:FindFirstChildWhichIsA("FileMesh")
+        if not Mesh then Handle.ChildAdded:Wait(); Mesh=Handle:FindFirstChildWhichIsA("SpecialMesh") or Handle:FindFirstChildWhichIsA("FileMesh") end
+        if not Mesh or not Mesh.TextureId:find("65514619") or BoogieDetected[Handle] then return end
+        local Owner = GetHolder("Boogie Bomb"); if not Owner then return end
+        WatchPart(Handle, function()
+            if BoogieDetected[Handle] then return end
+            BoogieDetected[Handle]=true
+            QueueGriefNotification(Owner.Name.." used Boogie Bomb on you!",Owner.Name,"Boogie Bomb")
+        end)
+    end
+
+    local HitMissiles={}
+    local function TrackMissile(Child)
+        local Username = Child.Name:match("Missle_(.+)")
+        if not Username or Username==LocalPlayer.Name then return end
+        if not Child:IsA("BasePart") then return end
+        local function OnHit()
+            if HitMissiles[Child] then return end
+            HitMissiles[Child]=true
+            QueueGriefNotification(Username.." used Heatseeker on you!",Username,"Heatseeker")
+            Connect(Child.AncestryChanged, function() if not Child.Parent then HitMissiles[Child]=nil end end)
+        end
+        Connect(Child.Touched, function(Hit) local Char=LocalPlayer.Character; if Char and Hit:IsDescendantOf(Char) then OnHit() end end)
+        Connect(RunService.Heartbeat, function()
+            if HitMissiles[Child] or not Child.Parent then return end
+            local HRP=GetHRP(); if HRP and (Child.Position-HRP.Position).Magnitude<=15 then OnHit() end
+        end)
+    end
+
+    local DogeLastHit,WatchedDoges=0,{}
+    local function WatchDoge(Child)
+        local Username = Child.Name:match("^PlayerName_(.+)_Doge$")
+        if not Username or Username==LocalPlayer.Name or WatchedDoges[Child] then return end
+        WatchedDoges[Child]=true
+        local Parts = Child:IsA("BasePart") and {Child} or Child:GetDescendants()
+        for _,Part in ipairs(Parts) do
+            if not Part:IsA("BasePart") then continue end
+            Part.Touched:Connect(function(Hit)
+                local Char=LocalPlayer.Character
+                if not Char or not Hit:IsDescendantOf(Char) then return end
+                if tick()-DogeLastHit<2 then return end
+                DogeLastHit=tick()
+                QueueGriefNotification(Username.." used Attack Doge on you!",Username,"Attack Doge")
+            end)
+        end
+    end
+
+    local PaintballLastHit=0
+    local LaserDetected,LaserLastHit={},0
+    local function OnLaserHit()
+        if tick()-LaserLastHit<2 then return end
+        local Holder=GetHolder("Laser Cape"); if not Holder then return end
+        LaserLastHit=tick()
+        QueueGriefNotification(Holder.Name.." used Laser Cape on you!",Holder.Name,"Laser Cape")
+    end
+
+    local MedusaLastHit=0
+    local MedusaRadius=(33.986812591552734+33.986873626708984)/2/2*math.pi
+    local BodyPartSet={LeftFoot=true,RightFoot=true,LeftLowerLeg=true,RightLowerLeg=true,LeftUpperLeg=true,RightUpperLeg=true,LeftHand=true,RightHand=true,LeftLowerArm=true,RightLowerArm=true,LeftUpperArm=true,RightUpperArm=true,UpperTorso=true,LowerTorso=true,Head=true}
+
+    local HitCooldowns,LocalJustFired={},false
+    local PrevHolderPos,PrevLocalPos=nil,nil
+    local function HookLocalPotion()
+        local Char=LocalPlayer.Character; if not Char then return end
+        local function HookPotion(Potion) Potion.Activated:Connect(function() LocalJustFired=true; task.delay(1,function() LocalJustFired=false end) end) end
+        local Potion=Char:FindFirstChild("Body Swap Potion"); if Potion then HookPotion(Potion) end
+        Connect(Char.ChildAdded, function(Child) if Child.Name=="Body Swap Potion" then HookPotion(Child) end end)
+    end
+    Connect(LocalPlayer.CharacterAdded,HookLocalPotion); HookLocalPotion()
+
+    Connect(workspace.ChildAdded, function(Child)
+        local SentryId=Child.Name:match("Sentry_(%d+)")
+        if SentryId then local Ok,Name=pcall(Players.GetNameFromUserIdAsync,Players,tonumber(SentryId)); SentryOwners[Ok and Name or "Unknown"]=true end
+        TrackBullet(Child)
+        if Child:IsA("Model") or Child:IsA("Folder") then Connect(Child.DescendantAdded,TrackBullet) end
+        if Child.Name=="Handle" then TrackHandle(Child) end
+        TrackMissile(Child); WatchDoge(Child)
+        if Child:IsA("BasePart") and math.abs(Child.Size.X-1)<=0.1 and math.abs(Child.Size.Y-1)<=0.1 and math.abs(Child.Size.Z-0.1)<=0.1 then
+            local Holder=GetHolder("Paintball Gun")
+            if Holder then
+                local TouchConn,HeartbeatConn
+                local function OnHit()
+                    if tick()-PaintballLastHit<2 then return end
+                    PaintballLastHit=tick()
+                    QueueGriefNotification(Holder.Name.." used Paintball Gun on you!",Holder.Name,"Paintball Gun")
+                    TouchConn:Disconnect(); HeartbeatConn:Disconnect()
+                end
+                TouchConn=Connect(Child.Touched,function(Hit) local Char=LocalPlayer.Character; if Char and Hit:IsDescendantOf(Char) then OnHit() end end)
+                HeartbeatConn=Connect(RunService.Heartbeat,function() if not Child.Parent then TouchConn:Disconnect(); HeartbeatConn:Disconnect(); return end; local HRP=GetHRP(); if HRP and (Child.Position-HRP.Position).Magnitude<=3 then OnHit() end end)
+            end
+        end
+        if Child:IsA("MeshPart") and BodyPartSet[Child.Name] and tick()-MedusaLastHit>=3 then
+            local Holder=GetHolder("Medusa's Head")
+            if Holder then
+                local HolderHRP=Holder.Character and Holder.Character:FindFirstChild("HumanoidRootPart")
+                if HolderHRP then
+                    local Start=tick(); local Conn
+                    Conn=Connect(RunService.Heartbeat,function()
+                        if tick()-MedusaLastHit<3 or tick()-Start>1 then Conn:Disconnect(); return end
+                        local Char=LocalPlayer.Character; local HRP=GetHRP(); if not HRP then return end
+                        local D=HolderHRP.Position-HRP.Position
+                        if math.sqrt(D.X^2+D.Z^2)>MedusaRadius then return end
+                        local LocalPart=Char:FindFirstChild(Child.Name)
+                        if LocalPart and (Child.Position-LocalPart.Position).Magnitude<=2 then
+                            MedusaLastHit=tick(); Conn:Disconnect()
+                            QueueGriefNotification(Holder.Name.." used Medusa's Head on you!",Holder.Name,"Medusa's Head")
+                        end
+                    end)
+                end
+            end
+        end
+        if Child.Name=="WebRope" and Child:IsA("RopeConstraint") then
+            local Holder=GetHolder("Web Slinger")
+            if Holder then
+                local Conn
+                Conn=Connect(RunService.Heartbeat,function()
+                    if not Child.Parent then Conn:Disconnect(); return end
+                    local Char=LocalPlayer.Character; if not Char then return end
+                    if (Child.Attachment0 and Child.Attachment0:IsDescendantOf(Char)) or (Child.Attachment1 and Child.Attachment1:IsDescendantOf(Char)) then
+                        QueueGriefNotification(Holder.Name.." used Web Slinger on you!",Holder.Name,"Web Slinger"); Conn:Disconnect()
+                    end
+                end)
+            end
+        end
+    end)
+
+    Connect(RunService.Heartbeat, function()
+        local HRP=GetHRP()
+        if HRP then
+            for _,Child in ipairs(workspace:GetChildren()) do
+                local Username=Child.Name:match("^PlayerName_(.+)_Doge$")
+                if not Username or Username==LocalPlayer.Name then continue end
+                local Part=Child:IsA("BasePart") and Child or Child:FindFirstChildWhichIsA("BasePart",true)
+                if not Part or (Part.Position-HRP.Position).Magnitude>5 then continue end
+                if tick()-DogeLastHit<2 then continue end
+                DogeLastHit=tick()
+                QueueGriefNotification(Username.." used Attack Doge on you!",Username,"Attack Doge")
+            end
+        end
+        local Holder=GetHolder("Body Swap Potion"); if not Holder then PrevHolderPos=nil; PrevLocalPos=nil; return end
+        local Cooldown=HitCooldowns[Holder.Name]; if Cooldown and tick()-Cooldown<30 then return end
+        local HolderHRP=Holder.Character and Holder.Character:FindFirstChild("HumanoidRootPart")
+        local LocalHRP=GetHRP(); if not HolderHRP or not LocalHRP then return end
+        local CurrHolder,CurrLocal=HolderHRP.Position,LocalHRP.Position
+        if PrevHolderPos and PrevLocalPos then
+            if (CurrHolder-PrevLocalPos).Magnitude<=12 and (CurrLocal-PrevHolderPos).Magnitude<=12 and not LocalJustFired then
+                HitCooldowns[Holder.Name]=tick()
+                QueueGriefNotification(Holder.Name.." used Body Swap Potion on you!",Holder.Name,"Body Swap Potion")
+            end
+        end
+        PrevHolderPos=CurrHolder; PrevLocalPos=CurrLocal
+    end)
+
+    local NotificationFolder = LocalPlayer.PlayerGui:WaitForChild("Notification"):WaitForChild("Notification")
+    Connect(NotificationFolder.ChildAdded, function(Child)
+        if not Child:IsA("TextLabel") then return end
+        local Text=Child.Text
+        if not (Text:find("ragdoll") or Text:find("balloon") or Text:find("rocket")) then return end
+        for _,Player in ipairs(Players:GetPlayers()) do
+            if Player==LocalPlayer then continue end
+            if Text:find(Player.Name,1,true) then
+                local Command=Text:match('"([^"]+)"')
+                local CommandName=Command:sub(1,1):upper()..Command:sub(2)
+                QueueGriefNotification(Player.Name.." used "..CommandName.." on you!",Player.Name,CommandName); return
+            end
+        end
+    end)
+
+    for _,C in ipairs(workspace:GetChildren()) do
+        local SentryId=C.Name:match("Sentry_(%d+)")
+        if SentryId then local Ok,Name=pcall(Players.GetNameFromUserIdAsync,Players,tonumber(SentryId)); SentryOwners[Ok and Name or "Unknown"]=true end
+        TrackBullet(C); if C.Name=="Handle" then TrackHandle(C) end; WatchDoge(C); TrackMissile(C)
+    end
+
+    local Ok2,Net=pcall(function() return ReplicatedStorage.Packages.Net end)
+    if Ok2 and Net then
+        for _,v in ipairs(Net:GetChildren()) do
+            if v.Name=="Ragdoll" and v:IsA("RemoteEvent") then Connect(v.OnClientEvent,OnLaserHit) end
+            if v.Name:sub(1,3)~="RE/" then continue end
+            local Children=Net:GetChildren()
+            local Remote=Children[table.find(Children,v)+1]
+            if not Remote or not Remote:IsA("RemoteEvent") then continue end
+            Connect(Remote.OnClientEvent, function(...)
+                local Args={...}
+                if #Args<1 or typeof(Args[1])~="Instance" or Args[1].Name~="Hit" then return end
+                local Hit=Args[1]; local rawGear=Args[2]
+                local Gear=(typeof(rawGear)=="string" and rawGear~="" and not rawGear:match("^#%x+$") and not tonumber(rawGear)) and rawGear or (Hit.Parent and Hit.Parent.Name or "Unknown")
+                local Char=Hit.Parent and Hit.Parent.Parent; if not Char then return end
+                local Plr=Players:GetPlayerFromCharacter(Char)
+                local Attacker=Plr and Plr.Name or Char.Name
+                if Attacker~="Unknown" and Attacker~=LocalPlayer.Name then
+                    QueueGriefNotification(Attacker.." used "..Gear.." on you!",Attacker,Gear)
+                end
+            end)
+        end
+    end
+
+    if Debug.Enabled then Notify(Debug.Griefer,Debug.Victim,Debug.Item,Debug.Autojoiner,Debug.StealInfo) end
+end)
+
+    local function endSession(reason)
+        if not STATE.active then return end; STATE.active=false; STATE.key=""; STATE.hwid=""; STATE.time_left_sec=0
+        pcall(function() if writefile then writefile("bob_key.txt","") end end)
+        ScreenGui:Destroy(); CreateLoginUI(reason)
+    end
+
+    task.spawn(function() while STATE.active do task.wait(1); if STATE.time_left_sec~=math.huge then if STATE.time_left_sec>0 then STATE.time_left_sec-=1 end; TimerTxt.Text=formatSeconds(STATE.time_left_sec); KeyTimeLbl.Text="Key: "..formatSeconds(STATE.time_left_sec); if STATE.time_left_sec<300 then tween(TimerTxt,0.5,{TextColor3=C.danger}):Play() elseif STATE.time_left_sec<3600 then tween(TimerTxt,0.5,{TextColor3=C.warning}):Play() end; if STATE.time_left_sec<=0 then endSession("⌛ Sua key expirou."); return end end end end)
+    task.spawn(function()
+        local failCount=0
+        while STATE.active do
+            task.wait(45); if not STATE.active then return end
+            local body = httpPostJson(API_BASE.."/api/auth", jsonEncode({key=STATE.key, hwid=STATE.hwid}))
+            if not body or body=="" then 
+                failCount+=1; if failCount>=3 then endSession("⚠️ Falha de conexão. Verifique sua internet."); return end; continue 
+            end
+            failCount=0; local data=jsonDecode(body)
+            if not data or not data.ok then
+                local reason="⌛ Sua key expirou."
+                if data and data.error then reason = data.error end
+                endSession(reason); return
+            else 
+                local tl = data.timeLeft
+                if tl == "Infinity" or tl == math.huge or data.isLifetime then
+                    STATE.time_left_sec = math.huge
+                else
+                    STATE.time_left_sec = math.floor(tonumber(tl or 0)/1000)
+                end
+            end
+        end
+    end)
+    task.spawn(function() 
+        while STATE.active do 
+            httpPostJson(API_BASE.."/api/presence", jsonEncode({key=STATE.key, name=LocalPlayer.Name, jobId=game.JobId}))
+            task.wait(20+math.random(1,5)) 
+        end 
+    end)
+    task.spawn(function() 
+        while STATE.active do 
+            local body = httpGet(API_BASE.."/api/online")
+            if body and body ~= "" then
+                local data = jsonDecode(body)
+                if data and data.online then RefreshUserList(data.online) end
+            end
+            task.wait(15+math.random(1,5)) 
+        end 
+    end)
+
+    local lastLatestId=""
+    local startTime=os.time()
+    task.spawn(function()
+        setStatus("Online",C.success)
+        -- clearLogsAPI() -- Comentado para não limpar logs de outros ao entrar
+        while STATE.active do
+            local body = httpGet(API_BASE.."/api/latest?key="..urlEncode(STATE.key).."&secret="..SCRIPT_SECRET)
+            if body and body~="" then
+                local data = jsonDecode(body)
+                if data and data.id and data.id ~= lastLatestId and (os.time()-startTime) > 3 then
+                    lastLatestId = data.id
+                    local name = tostring(data.brainrot or data.name or "Unknown")
+                    local value = tostring(data.value or "0")
+                    local owner = tostring(data.owner or "Unknown")
+                    local jobId = tostring(data.jobId or "")
+                    local players = data.players or "?"
+                    local maxPlayers = data.maxPlayers or "?"
+                    local inDuel = data.inDuel or false
+                    
+                    -- Adiciona ⚔️ ao nome se for duel
+                    if inDuel then
+                        name = "⚔️ " .. name
+                    end
+                    
+                    -- Converte valor para número para filtros
+                    local numVal = parseValue(value)
+                    
+                    -- Se for ULTRA ou HIGH, bipa e loga
+                    CreateLogEntry(jobId, name, value, numVal, players, maxPlayers, inDuel)
+                end
+            end
+            task.wait(3)
+        end
+    end)
+
+    print("[BOB] v2.3 Carregado! Key: "..STATE.key)
+end
+
+-- STARTUP SILENCIOSO
+task.spawn(function()
+    local savedKey = nil
+    pcall(function() if isfile and isfile("bob_key.txt") then savedKey = readfile("bob_key.txt"):gsub("%s+","") end end)
+    if savedKey and savedKey ~= "" then
+        local ok, msg = validateKey(savedKey)
+        if ok then LoadMainUI() else CreateLoginUI(msg) end
+    else CreateLoginUI() end
+end)
