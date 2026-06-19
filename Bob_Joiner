@@ -397,7 +397,29 @@ function CreateLoginUI(errorMsg)
 
     Btn.MouseButton1Click:Connect(tryLogin)
     Input.FocusLost:Connect(function(enter) if enter then tryLogin() end end)
-    pcall(function() if isfile and isfile("bob_key.txt") then Input.Text = readfile("bob_key.txt") end end)
+    
+    -- CARREGA KEY AUTOMATICAMENTE (prioridades):
+    -- 1. getgenv().BobJoiner.Key (do script copiado do site)
+    -- 2. bob_key.txt (arquivo salvo localmente)
+    local autoKeyLoaded = false
+    pcall(function()
+        if getgenv().BobJoiner and getgenv().BobJoiner["Key"] and getgenv().BobJoiner["Key"] ~= "" then
+            Input.Text = getgenv().BobJoiner["Key"]
+            autoKeyLoaded = true
+            print("[BOB JOINER] ✅ Key carregada do getgenv().BobJoiner")
+        elseif isfile and isfile("bob_key.txt") then
+            Input.Text = readfile("bob_key.txt")
+            autoKeyLoaded = true
+            print("[BOB JOINER] ✅ Key carregada de bob_key.txt")
+        end
+    end)
+    
+    -- SE A KEY FOI CARREGADA AUTOMATICAMENTE, TENTA LOGAR
+    if autoKeyLoaded and Input.Text ~= "" then
+        task.wait(0.5) -- Aguarda 0.5s para UI carregar
+        print("[BOB JOINER] 🚀 Tentando login automático...")
+        tryLogin()
+    end
 end
 
 function LoadMainUI()
